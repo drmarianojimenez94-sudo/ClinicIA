@@ -1,0 +1,1524 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ClinIA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Paleta: salud metabólica integral / naturista — celeste + verde, sobre base cálida neutra */
+  --bg: #F5F8F5;
+  --surface: #FFFFFF;
+  --surface-2: #EAF1EC;
+  --ink: #1B2A24;
+  --ink-soft: #5E7268;
+  --primary: #2F8F6B;        /* verde hoja */
+  --primary-dark: #216B4F;
+  --primary-tint: #E2F1E7;
+  --sky: #2E97B8;            /* celeste */
+  --sky-dark: #257A93;
+  --sky-tint: #E1F1F5;
+  --border: #DEE8E0;
+  --warn: #A96A2E;
+  --warn-tint: #F6EDE1;
+  --danger: #C1503F;
+  --danger-tint: #FAEAE6;
+  --radius: 16px;
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #101A16;
+    --surface: #17231D;
+    --surface-2: #1E2C25;
+    --ink: #E9F1EC;
+    --ink-soft: #93A79C;
+    --primary: #5CBB94;
+    --primary-dark: #479878;
+    --primary-tint: #1C3529;
+    --sky: #5AB8D6;
+    --sky-dark: #4499B5;
+    --sky-tint: #16303A;
+    --border: #263A30;
+    --warn: #D9A05C;
+    --warn-tint: #33291A;
+    --danger: #E0897A;
+    --danger-tint: #362320;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #101A16;
+  --surface: #17231D;
+  --surface-2: #1E2C25;
+  --ink: #E9F1EC;
+  --ink-soft: #93A79C;
+  --primary: #5CBB94;
+  --primary-dark: #479878;
+  --primary-tint: #1C3529;
+  --sky: #5AB8D6;
+  --sky-dark: #4499B5;
+  --sky-tint: #16303A;
+  --border: #263A30;
+  --warn: #D9A05C;
+  --warn-tint: #33291A;
+  --danger: #E0897A;
+  --danger-tint: #362320;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100%;
+}
+#app { max-width: 520px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; }
+
+header.topbar {
+  position: sticky; top: 0;
+  padding: calc(env(safe-area-inset-top, 0px) + 14px) 16px 12px;
+  background: var(--bg);
+  z-index: 10;
+  display: flex; align-items: center; gap: 10px;
+  border-bottom: 1px solid transparent;
+}
+header.topbar.scrolled { border-bottom-color: var(--border); }
+header.topbar h1 { font-family: var(--font-display); font-size: 19px; font-weight: 600; margin: 0; flex: 1; letter-spacing: -0.01em; }
+.back-btn {
+  width: 36px; height: 36px; border-radius: 11px; border: none; background: var(--surface-2);
+  color: var(--ink); font-size: 18px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+
+main { flex: 1; padding: 4px 16px 32px; }
+
+.brand { text-align: center; padding: 14px 0 24px; }
+.brand .mark {
+  width: 58px; height: 58px; border-radius: 18px;
+  background: linear-gradient(135deg, var(--sky), var(--primary));
+  color: white; font-family: var(--font-display); font-size: 24px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 14px; letter-spacing: -0.01em;
+}
+.brand h1 { font-family: var(--font-display); font-size: 23px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+.brand p { color: var(--ink-soft); font-size: 14px; margin: 5px 0 0; }
+
+.search-box {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 12px 14px; margin-bottom: 14px;
+}
+.search-box input {
+  border: none; background: transparent; outline: none; font-size: 16px; flex: 1; color: var(--ink);
+}
+.search-box input::placeholder { color: var(--ink-soft); }
+.search-box .icon { color: var(--ink-soft); font-size: 16px; }
+
+button { font-family: inherit; }
+
+.btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; padding: 15px 16px; border-radius: var(--radius); border: none;
+  font-size: 16px; font-weight: 600; cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:active { background: var(--primary-dark); }
+.btn-secondary { background: var(--surface); color: var(--ink); border: 1px solid var(--border); }
+.btn-ghost { background: transparent; color: var(--primary); font-weight: 600; }
+.btn-danger { background: var(--danger); color: white; }
+.btn-block-row { display: flex; gap: 10px; }
+.btn-block-row .btn { flex: 1; }
+.btn:disabled { opacity: 0.5; }
+
+.section-label {
+  font-family: var(--font-display); font-size: 13.5px; font-weight: 600; color: var(--ink-soft);
+  letter-spacing: 0.01em; margin: 24px 0 10px;
+}
+.section-label:first-child { margin-top: 4px; }
+
+.patient-card {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 13px 14px; margin-bottom: 8px; cursor: pointer;
+}
+.patient-card .avatar {
+  width: 40px; height: 40px; border-radius: 50%; background: var(--sky-tint); color: var(--sky-dark);
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; flex-shrink: 0;
+}
+.patient-card .info { flex: 1; min-width: 0; }
+.patient-card .name { font-weight: 600; font-size: 15.5px; }
+.patient-card .meta { color: var(--ink-soft); font-size: 13px; margin-top: 1px; }
+.patient-card .chev { color: var(--ink-soft); }
+
+.empty-state { text-align: center; padding: 40px 20px; color: var(--ink-soft); }
+.empty-state p { font-size: 14.5px; margin: 4px 0 0; }
+
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--ink-soft); margin-bottom: 6px; }
+.form-group input, .form-group select, .form-group textarea {
+  width: 100%; padding: 13px 14px; border-radius: 12px; border: 1px solid var(--border);
+  background: var(--surface); font-size: 16px; color: var(--ink); outline: none;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--primary); }
+.form-row { display: flex; gap: 10px; }
+.form-row .form-group { flex: 1; }
+.required-mark { color: var(--danger); }
+
+.patient-header {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 18px; margin-bottom: 16px;
+}
+.patient-header .name { font-family: var(--font-display); font-size: 21px; font-weight: 600; letter-spacing: -0.01em; }
+.patient-header .meta { color: var(--ink-soft); font-size: 14px; margin-top: 3px; }
+
+.action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 6px; }
+.action-tile {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 14px; text-align: left; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--ink);
+}
+.action-tile .ic { font-size: 18px; display: block; margin-bottom: 6px; }
+
+.encounter-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 2px; border-bottom: 1px solid var(--border); cursor: pointer;
+}
+.encounter-row:last-child { border-bottom: none; }
+.encounter-row .date {
+  width: 46px; text-align: center; flex-shrink: 0;
+}
+.encounter-row .date .d { font-size: 17px; font-weight: 700; line-height: 1; }
+.encounter-row .date .m { font-size: 10.5px; color: var(--ink-soft); text-transform: uppercase; margin-top: 2px; }
+.encounter-row .info { flex: 1; min-width: 0; }
+.encounter-row .title { font-weight: 600; font-size: 14.5px; }
+.encounter-row .sub { color: var(--ink-soft); font-size: 12.5px; margin-top: 1px; }
+.badge {
+  font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 20px; text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.badge-approved { background: var(--primary-tint); color: var(--primary-dark); }
+.badge-draft { background: var(--warn-tint); color: var(--warn); }
+
+/* Consulta */
+.record-hero { text-align: center; padding: 30px 10px 10px; }
+.mic-button {
+  width: 140px; height: 140px; border-radius: 50%; border: none; background: var(--primary); color: white;
+  font-size: 44px; display: flex; align-items: center; justify-content: center; margin: 0 auto;
+  cursor: pointer; box-shadow: 0 8px 24px rgba(47,143,107,0.35);
+}
+.mic-button.recording { background: var(--danger); box-shadow: 0 0 0 10px var(--danger-tint); animation: pulse 1.8s infinite; }
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(192,57,43,0.35); }
+  70% { box-shadow: 0 0 0 16px rgba(192,57,43,0); }
+  100% { box-shadow: 0 0 0 0 rgba(192,57,43,0); }
+}
+.record-hero .hint { color: var(--ink-soft); font-size: 14px; margin-top: 16px; }
+.record-status { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 14px; }
+.rec-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--danger); animation: blink 1.2s infinite; }
+@keyframes blink { 50% { opacity: 0.25; } }
+.timer { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.speaker-toggle {
+  display: flex; gap: 8px; margin: 18px 0 10px;
+}
+.speaker-toggle button {
+  flex: 1; padding: 12px; border-radius: 12px; border: 2px solid var(--border); background: var(--surface);
+  color: var(--ink); font-weight: 600; font-size: 14px; cursor: pointer;
+}
+.speaker-toggle button.active-medico { border-color: var(--sky); background: var(--sky-tint); color: var(--sky-dark); }
+.speaker-toggle button.active-paciente { border-color: var(--primary); background: var(--primary-tint); color: var(--primary-dark); }
+
+.transcript-feed {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 12px 14px; max-height: 240px; overflow-y: auto; margin-bottom: 14px;
+}
+.transcript-line { font-size: 14px; margin-bottom: 8px; line-height: 1.4; }
+.transcript-line .who { font-weight: 700; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.03em; }
+.who-medico { color: var(--sky-dark); }
+.who-paciente { color: var(--primary-dark); }
+.who-na { color: var(--danger); }
+.transcript-line .txt { color: var(--ink); }
+.transcript-line.interim { opacity: 0.5; }
+
+.manual-input { display: flex; gap: 8px; margin-bottom: 10px; }
+.manual-input textarea { flex: 1; resize: none; min-height: 44px; }
+
+/* Revisión / historia clínica */
+.hc-field { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; }
+.hc-field .field-label { font-size: 12.5px; font-weight: 700; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 6px; }
+.hc-field textarea, .hc-field input {
+  width: 100%; border: none; background: transparent; font-size: 15px; color: var(--ink); outline: none;
+  resize: vertical; min-height: 22px; padding: 0; font-family: inherit;
+}
+.hc-field .not-registered { color: var(--ink-soft); font-style: italic; font-size: 14.5px; }
+.hc-tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.hc-tag {
+  font-size: 13px; background: var(--surface-2); padding: 5px 10px; border-radius: 20px; display: flex; align-items: center; gap: 6px;
+}
+.hc-tag.negado { text-decoration: line-through; color: var(--ink-soft); }
+.hc-tag .rm { cursor: pointer; color: var(--ink-soft); font-weight: 700; }
+.add-tag-btn { font-size: 13px; color: var(--primary); font-weight: 600; cursor: pointer; padding: 5px 4px; }
+
+.vitals-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.vital-box { background: var(--surface-2); border-radius: 10px; padding: 8px; text-align: center; }
+.vital-box .lbl { font-size: 10.5px; color: var(--ink-soft); font-weight: 700; }
+.vital-box .val { font-size: 15px; font-weight: 700; margin-top: 2px; }
+.vital-box input { text-align: center; font-weight: 700; font-size: 13px; width: 100%; min-width: 0; }
+
+.alert-box {
+  background: var(--warn-tint); border: 1px solid var(--warn); border-radius: var(--radius);
+  padding: 13px 14px; margin-bottom: 8px; font-size: 14px; color: var(--ink);
+}
+.alert-box .title { font-weight: 700; color: var(--warn); font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 4px; }
+
+.suggest-box {
+  background: var(--primary-tint); border: 1px solid var(--primary); border-radius: var(--radius);
+  padding: 13px 14px; margin-bottom: 8px;
+}
+.suggest-box .txt { font-size: 14px; margin-bottom: 10px; }
+.suggest-box .row { display: flex; gap: 8px; }
+.suggest-box .row button {
+  flex: 1; padding: 9px; border-radius: 9px; border: none; font-weight: 600; font-size: 13.5px; cursor: pointer;
+}
+.suggest-box .accept { background: var(--primary); color: white; }
+.suggest-box .discard { background: var(--surface); color: var(--ink-soft); }
+
+.transcript-full { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
+.transcript-full .transcript-line { }
+
+.consent-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100;
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.consent-sheet {
+  background: var(--surface); border-radius: 20px 20px 0 0; padding: 24px 20px calc(24px + env(safe-area-inset-bottom, 0px));
+  max-width: 520px; width: 100%;
+}
+.consent-sheet h2 { font-size: 18px; margin: 0 0 10px; }
+.consent-sheet p { font-size: 14.5px; color: var(--ink-soft); line-height: 1.5; margin: 0 0 18px; }
+.consent-sheet .btn-block-row { margin-top: 6px; }
+
+.toast {
+  position: fixed; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%);
+  background: var(--ink); color: var(--bg); padding: 11px 18px; border-radius: 30px; font-size: 13.5px;
+  font-weight: 600; z-index: 200; opacity: 0; transition: opacity 0.25s; pointer-events: none;
+}
+.toast.show { opacity: 1; }
+
+.unsupported-banner {
+  background: var(--warn-tint); border: 1px solid var(--warn); border-radius: var(--radius);
+  padding: 12px 14px; font-size: 13.5px; margin-bottom: 14px; color: var(--ink);
+}
+
+.small-note { font-size: 12.5px; color: var(--ink-soft); text-align: center; margin-top: 10px; line-height: 1.5; }
+
+::-webkit-scrollbar { display: none; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+"use strict";
+
+/* ============================================================
+   ALMACENAMIENTO
+   Todo se guarda en localStorage, privado a este navegador/
+   dispositivo. No se envía a ningún servidor: es una app de
+   un solo médico usada en su propio teléfono.
+   ============================================================ */
+const STORE_KEY = "clinia_v1";
+
+function loadStore() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return { patients: {}, encounters: {}, nextPatientId: 1, nextEncounterId: 1 };
+    return JSON.parse(raw);
+  } catch (e) {
+    console.error("Error leyendo almacenamiento local", e);
+    return { patients: {}, encounters: {}, nextPatientId: 1, nextEncounterId: 1 };
+  }
+}
+function saveStore() {
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify(DB));
+  } catch (e) {
+    console.error("Error guardando", e);
+    showToast("No se pudo guardar. Espacio de almacenamiento lleno.");
+  }
+}
+let DB = loadStore();
+
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(showToast._h);
+  showToast._h = setTimeout(() => t.classList.remove("show"), 2200);
+}
+
+/* ============================================================
+   MOTOR DE CLASIFICACIÓN CLÍNICA (heurístico, probado aparte)
+   ============================================================ */
+const ANTECEDENTE_KEYWORDS = [
+  [/hipertens|presión alta/i, "HTA"],
+  [/diabet/i, "Diabetes"],
+  [/colesterol|dislipidem/i, "Dislipidemia"],
+  [/asma/i, "Asma"],
+  [/card[ií]ac|coraz[oó]n/i, "Cardiopatía"],
+  [/renal|riñ[oó]n/i, "Enfermedad renal"],
+  [/epileps|convulsion/i, "Epilepsia"],
+  [/tiroid/i, "Enfermedad tiroidea"],
+];
+const HABITO_KEYWORDS = [
+  [/fumo|fuma|tabaco|cigarrillo/i, "tabaco"],
+  [/alcohol|bebo|toma bebidas/i, "alcohol"],
+  [/droga|sustancia/i, "otras sustancias"],
+  [/actividad f[ií]sica|hago ejercicio|voy al gimnasio|salgo a (caminar|correr)/i, "actividad física"],
+];
+const SINTOMA_KEYWORDS = /dolor|duele|doler|molestia|fiebre|\btos\b|tose|disnea|falta de aire|ahogo|mareo|náusea|nausea|vómito|vomito|ardor|picaz[oó]n|hinchaz[oó]n|sangr|presi[oó]n en el pecho|opresi[oó]n/i;
+const NEGACION = /\bno\b|\bnunca\b|\bningun|\bninguna\b|\bniego\b|\bniega\b/i;
+
+function limpiar(t) { return t.trim().replace(/\s+/g, " "); }
+
+function extraerVitales(texto) {
+  const v = {}; let m;
+  if ((m = texto.match(/presi[oó]n[^\d]{0,15}(\d{2,3})\s*[\/\\]\s*(\d{2,3})/i))) v.TA = m[1] + "/" + m[2] + " mmHg";
+  if ((m = texto.match(/frecuencia respiratoria[^\d]{0,10}(\d{1,2})/i))) v.FR = m[1] + " rpm";
+  else if ((m = texto.match(/frecuencia( card[ií]aca)?[^\d]{0,10}(\d{2,3})/i))) v.FC = m[2] + " lpm";
+  if ((m = texto.match(/satura(ci[oó]n)?[^\d]{0,10}(\d{2,3})/i))) v.SpO2 = m[2] + " %";
+  if ((m = texto.match(/temperatura[^\d]{0,10}(\d{2}([.,]\d)?)/i))) v.T = m[1].replace(",", ".") + " °C";
+  if ((m = texto.match(/peso[^\d]{0,10}(\d{2,3}([.,]\d)?)\s*k?/i))) v.peso = m[1].replace(",", ".") + " kg";
+  if ((m = texto.match(/talla[^\d]{0,10}(\d(\.\d{1,2})?)/i))) v.talla = m[1] + " m";
+  return v;
+}
+function extraerMedicacion(texto) {
+  const re = /([a-záéíóúñ]{4,})\s+(?:de\s+)?(\d{1,4})\s*(mg|mcg|g|ml)?\b(?:.*?cada\s+(\d{1,2})\s*(horas?|d[ií]as?))?/i;
+  const m = texto.match(re);
+  if (!m) return null;
+  return {
+    texto_original: texto,
+    principio_activo_probable: m[1],
+    dosis: m[3] ? m[2] + " " + m[3] : m[2],
+    frecuencia: m[4] ? "cada " + m[4] + " " + m[5] : null,
+    confianza: "baja",
+  };
+}
+function clasificarTranscripcion(lineas) {
+  // Motor de respaldo local (reglas/keywords), usado SOLO si la llamada a la
+  // IA real falla. Ya no distingue médico/paciente (no se etiqueta en vivo);
+  // aplica las mismas reglas a cualquier línea, así que es más burdo que la
+  // IA real — de ahí el aviso "usá con más atención" cuando se activa.
+  const r = {
+    motivo_consulta: { texto: null, estado: "no_registrado" },
+    enfermedad_actual: { fragmentos: [] },
+    antecedentes_personales: [], antecedentes_quirurgicos: [], internaciones_previas: [],
+    alergias: [], medicacion_habitual: [], habitos: [], antecedentes_familiares: [],
+    examen_fisico: {}, estudios_complementarios: [], impresion_diagnostica: [], plan: [],
+    alertas: [{ texto: "Esta consulta se organizó con el motor local de respaldo (sin IA real): revisar todo con más atención de lo habitual.", campo: "general" }],
+  };
+  let motivoAsignado = false;
+  for (const linea of lineas) {
+    const texto = limpiar(linea.text || "");
+    if (!texto) continue;
+
+    const vit = extraerVitales(texto);
+    if (Object.keys(vit).length) Object.assign(r.examen_fisico, vit);
+
+    for (const [re, label] of ANTECEDENTE_KEYWORDS) if (re.test(texto)) {
+      r.antecedentes_personales.push({ texto: label, estado: NEGACION.test(texto) ? "negado_explicitamente" : "positivo", fuente: texto });
+    }
+    for (const [re, label] of HABITO_KEYWORDS) if (re.test(texto)) {
+      r.habitos.push({ texto: label, estado: NEGACION.test(texto) ? "negado_explicitamente" : "positivo", fuente: texto });
+    }
+    if (/alerg/i.test(texto)) {
+      r.alergias.push({ texto: texto, estado: NEGACION.test(texto) ? "negado_explicitamente" : "positivo_revisar", fuente: texto });
+    }
+    if (/cirug[ií]a|operaron|me operaron|operad[oa]/i.test(texto)) {
+      r.antecedentes_quirurgicos.push({ texto, estado: "positivo_revisar", fuente: texto });
+    }
+    if (/internad[oa]|internaci[oó]n/i.test(texto)) {
+      r.internaciones_previas.push({ texto, estado: "positivo_revisar", fuente: texto });
+    }
+    if (/mi (padre|madre|mamá|papá|hermano|hermana|abuelo|abuela)/i.test(texto)) {
+      r.antecedentes_familiares.push({ texto, estado: "positivo_revisar", fuente: texto });
+    }
+    if (/tomo|toma|mg|pastilla|comprimido/i.test(texto)) {
+      const med = extraerMedicacion(texto);
+      if (med) {
+        r.medicacion_habitual.push(med);
+        r.alertas.push({ texto: 'Medicamento posiblemente identificado como "' + med.principio_activo_probable + " " + (med.dosis || "") + '". Confirmar.', campo: "medicacion_habitual" });
+      }
+    }
+    if (!motivoAsignado && SINTOMA_KEYWORDS.test(texto)) {
+      r.motivo_consulta = { texto, estado: "registrado" };
+      motivoAsignado = true;
+    } else if (SINTOMA_KEYWORDS.test(texto)) {
+      r.enfermedad_actual.fragmentos.push(texto);
+    }
+    if (/diagn[oó]stico|impresi[oó]n diagn|podr[ií]a ser|descartar/i.test(texto)) {
+      const dif = /podr[ií]a ser|descartar|sospech/i.test(texto);
+      r.impresion_diagnostica.push({ texto, tipo: dif ? "diferencial_o_a_descartar" : "revisar_si_es_confirmado" });
+    }
+    if (/te voy a (indicar|recetar|pedir)|vamos a (pedir|solicitar|indicar)|te indico|te receto|solicito/i.test(texto)) {
+      r.plan.push({ texto });
+    }
+  }
+  return r;
+}
+
+/* ============================================================
+   RECONOCIMIENTO DE VOZ (Web Speech API del navegador)
+   No pasa por ningún servidor propio; usa el motor de voz-a-
+   texto integrado del navegador. En iOS Safari puede no estar
+   disponible: en ese caso se ofrece carga manual del texto.
+   ============================================================ */
+const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+const SPEECH_SUPPORTED = !!SpeechRecognitionAPI;
+
+/* ------------------------------------------------------------
+   Permiso de micrófono: pedimos el permiso explícitamente con
+   getUserMedia ANTES de arrancar el reconocimiento de voz. Esto
+   es lo que efectivamente dispara la viñeta nativa del sistema
+   operativo pidiendo permiso — si dejamos que sea el motor de
+   reconocimiento el que lo pida internamente, algunos navegadores
+   (sobre todo dentro de vistas embebidas) fallan en silencio con
+   "permiso denegado" sin mostrar nunca esa viñeta.
+
+   IMPORTANTE sobre Safari/iOS: el micrófono para reconocimiento de
+   voz debe arrancarse de forma SINCRÓNICA, en el mismo evento de
+   toque del botón. Si hay un "await" o un ".then()" en el medio
+   (por ejemplo, pedir permiso con getUserMedia primero y recién
+   después iniciar el reconocimiento), Safari pierde la conexión
+   con el gesto del usuario y lo trata como no autorizado — aunque
+   el permiso ya esté dado. Por eso acá NO se pide el micrófono por
+   separado: se llama a recognition.start() directamente en el
+   handler del click, y el propio navegador pide permiso si hace
+   falta.
+   ------------------------------------------------------------ */
+function showMicPermissionSheet(onRetry) {
+  const overlay = document.createElement("div");
+  overlay.className = "consent-overlay";
+  overlay.innerHTML =
+    '<div class="consent-sheet">' +
+    '<h2>No se pudo acceder al micrófono</h2>' +
+    '<p>Probá en este orden:</p>' +
+    '<p style="margin-top:-8px;">1. En el iPhone: <strong>Ajustes → General → Teclado → Activar dictado</strong> (Safari necesita el dictado del sistema activado para transcribir). También revisá Ajustes → Safari → Micrófono → Permitir.<br><br>' +
+    '2. Tocá el ícono "aA" en la barra de direcciones de Safari → Configuración del sitio web → Micrófono → Permitir.<br><br>' +
+    '3. Si estás viendo esto dentro del chat de Claude, abrí el enlace de esta app directamente en Safari (compartir → abrir en el navegador).</p>' +
+    '<div class="btn-block-row">' +
+    '<button class="btn btn-secondary" id="micSheetManual">Escribir manualmente</button>' +
+    '<button class="btn btn-primary" id="micSheetRetry">Reintentar</button>' +
+    '</div></div>';
+  document.body.appendChild(overlay);
+  document.getElementById("micSheetManual").onclick = function () { document.body.removeChild(overlay); };
+  document.getElementById("micSheetRetry").onclick = function () {
+    document.body.removeChild(overlay);
+    if (onRetry) onRetry();
+  };
+}
+function isMicPermissionError(errCode) {
+  return errCode === "not-allowed" || errCode === "permission-denied" || errCode === "service-not-allowed";
+}
+
+/* ============================================================
+   EXTRACTOR DE DATOS DEL PACIENTE (dictado -> ficha), probado
+   aparte con Node antes de integrarlo. Igual que el motor
+   clínico: nunca inventa; si no reconoce algo, lo deja null.
+   ============================================================ */
+const MESES = {
+  enero: "01", febrero: "02", marzo: "03", abril: "04", mayo: "05", junio: "06",
+  julio: "07", agosto: "08", septiembre: "09", setiembre: "09", octubre: "10",
+  noviembre: "11", diciembre: "12",
+};
+const FILLER_BLOCKLIST = /\b(eh|este|esta|bueno|o sea|a ver|vino|viene|por|control|consulta|dolor|tiene|presenta|paciente|refiere|síntoma|sintoma|desde|hace|dias|días|hoy|ayer|molestia)\b/i;
+
+function extractName(text) {
+  let t = text;
+  const leadRe = /^(el |la )?paciente\s+(se llama\s+)?|^se llama\s+/i;
+  const hadExplicitCue = leadRe.test(t);
+  t = t.replace(leadRe, "");
+  const cueRe = /(documento|dni\b|c[ée]dula|\d+\s*años|tel[ée]fono|celular|obras?\s+social|vive en|domicilio en|domicilio\b|sexo|masculino|femenino|var[oó]n|mujer|hombre|naci[oó])/i;
+  const m = t.match(cueRe);
+  let namePart = m ? t.slice(0, m.index) : t;
+  namePart = namePart.trim().replace(/,+$/, "").trim();
+  if (!namePart) return null;
+  const words = namePart.split(/\s+/).filter(Boolean);
+  if (!hadExplicitCue && (words.length > 4 || FILLER_BLOCKLIST.test(namePart))) return null;
+  if (hadExplicitCue && FILLER_BLOCKLIST.test(namePart)) return null;
+  if (words.length === 0) return null;
+  if (words.length === 1) return { nombre: words[0], apellido: null };
+  const apellido = words[words.length - 1];
+  const nombre = words.slice(0, -1).join(" ");
+  return { nombre, apellido };
+}
+function extractDNI(text) {
+  // Acepta el DNI dictado en grupos separados por espacios ("38 34 10 73"), no solo corrido.
+  const m = text.match(/(documento|dni|c[ée]dula)\s*[:\-]?\s*(\d[\d\s\.\-]*\d)/i);
+  if (!m) return null;
+  const digits = m[2].replace(/[^\d]/g, "");
+  if (digits.length < 6 || digits.length > 9) return null;
+  return digits;
+}
+function extractTelefono(text) {
+  const m = text.match(/(tel[ée]fono|celular|whats ?app)[^\d]{0,10}([\d\s\-]{6,16})/i);
+  if (!m) return null;
+  return m[2].replace(/[\s\-]/g, "");
+}
+function extractFechaNacimientoExplicita(text) {
+  const m = text.match(/naci[oó]\s+el\s+(\d{1,2})\s+de\s+([a-zñáéíóú]+)\s+de\s+(\d{4})/i);
+  if (!m) return null;
+  const dia = m[1].padStart(2, "0");
+  const mes = MESES[m[2].toLowerCase()];
+  if (!mes) return null;
+  return m[3] + "-" + mes + "-" + dia;
+}
+function extractEdad(text) {
+  const m = text.match(/(\d{1,3})\s*años/i);
+  return m ? parseInt(m[1], 10) : null;
+}
+function fechaAproxPorEdad(edad, hoy) {
+  hoy = hoy || new Date();
+  const anio = hoy.getFullYear() - edad;
+  const mes = String(hoy.getMonth() + 1).padStart(2, "0");
+  const dia = String(hoy.getDate()).padStart(2, "0");
+  return anio + "-" + mes + "-" + dia;
+}
+function extractSexo(text) {
+  if (/\bmasculino\b|\bvar[oó]n\b|\bhombre\b/i.test(text)) return "Masculino";
+  if (/\bfemenino\b|\bmujer\b/i.test(text)) return "Femenino";
+  return null;
+}
+function boundedCapture(text, cueRegexSource) {
+  const STOP_WORDS = "documento|dni|c[ée]dula|tel[ée]fono|celular|obras?\\s+social|vive en|domicilio|sexo|masculino|femenino|var[oó]n|mujer|hombre|naci[oó]|\\d+\\s*años|n[uú]mero de afiliado|n[uú]mero|afiliado|c[oó]mo|cu[aá]l";
+  const re = new RegExp(cueRegexSource + "\\s+([^,\\.]+?)(?=\\s+(?:" + STOP_WORDS + ")|$|[,\\.])", "i");
+  const m = text.match(re);
+  return m ? m[1].trim() : null;
+}
+function extractObraSocial(text) {
+  if (/no tiene obra social|sin obra social|\bparticular\b/i.test(text)) return "Particular / sin cobertura";
+  let val = boundedCapture(text, "obras?\\s+social");
+  if (val) {
+    val = val.replace(/^(s[ií]|no)\s+/i, "").trim();
+    if (!val) return null;
+  }
+  return val;
+}
+function extractNroAfiliado(text) {
+  const m = text.match(/n[uú]mero de afiliado\s*(?:es)?\s*[:\-]?\s*(\d[\d\s\.\-]*\d|\d)/i);
+  if (!m) return null;
+  return m[1].replace(/\s+/g, " ").trim();
+}
+function extractDomicilio(text) {
+  return boundedCapture(text, "(?:vive en|domicilio(?: en)?)");
+}
+function extractPatientData(fullText) {
+  const text = fullText.trim().replace(/\s+/g, " ");
+  const na = extractName(text) || {};
+  const fechaExplicita = extractFechaNacimientoExplicita(text);
+  const edad = extractEdad(text);
+  let fechaNacimiento = null, fechaEsAproximada = false;
+  if (fechaExplicita) { fechaNacimiento = fechaExplicita; }
+  else if (edad !== null) { fechaNacimiento = fechaAproxPorEdad(edad); fechaEsAproximada = true; }
+  return {
+    nombre: na.nombre || null, apellido: na.apellido || null,
+    dni: extractDNI(text), telefono: extractTelefono(text), sexo: extractSexo(text),
+    obraSocial: extractObraSocial(text), nroAfiliado: extractNroAfiliado(text), domicilio: extractDomicilio(text),
+    fechaNacimiento, fechaEsAproximada,
+  };
+}
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+function uid(store, key) {
+  const id = DB[key];
+  DB[key] = id + 1;
+  return id;
+}
+function fmtDate(iso) {
+  const d = new Date(iso);
+  const dias = ["dom","lun","mar","mié","jue","vie","sáb"];
+  const meses = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+  return { d: d.getDate(), m: meses[d.getMonth()], full: d.getDate() + "/" + (d.getMonth()+1) + "/" + d.getFullYear() };
+}
+function calcEdad(fn) {
+  if (!fn) return null;
+  const b = new Date(fn); const t = new Date();
+  let e = t.getFullYear() - b.getFullYear();
+  if (t.getMonth() < b.getMonth() || (t.getMonth() === b.getMonth() && t.getDate() < b.getDate())) e--;
+  return e;
+}
+function initials(nombre, apellido) {
+  return ((nombre||" ")[0] + (apellido||" ")[0]).toUpperCase();
+}
+function esc(s) {
+  return (s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+/* ============================================================
+   ROUTER / ESTADO
+   ============================================================ */
+let route = { name: "home" };
+let recState = null; // estado activo de una consulta en curso (no persistido tal cual; se autoguarda como draft)
+
+function goto(name, params) {
+  route = Object.assign({ name: name }, params || {});
+  render();
+  window.scrollTo(0, 0);
+}
+window.goto = goto; // expuesto globalmente: los onclick="goto(...)" del HTML corren en scope global
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+const app = document.getElementById("app");
+
+function render() {
+  if (route.name === "home") return renderHome();
+  if (route.name === "newPatient") return renderNewPatient();
+  if (route.name === "patient") return renderPatient();
+  if (route.name === "patientData") return renderPatientData();
+  if (route.name === "patientAntecedentes") return renderAntecedentes();
+  if (route.name === "consultActive") return renderConsultActive();
+  if (route.name === "consultReview") return renderConsultReview();
+  if (route.name === "encounterView") return renderEncounterView();
+}
+
+function topbar(title, onBack) {
+  return '<header class="topbar"><button class="back-btn" onclick="__back()">‹</button><h1>' + esc(title) + "</h1></header>";
+}
+window.__back = function () {
+  if (route.name === "newPatient") return goto("home");
+  if (route.name === "patient") return goto("home");
+  if (route.name === "patientData" || route.name === "patientAntecedentes" || route.name === "encounterView")
+    return goto("patient", { patientId: route.patientId });
+  if (route.name === "consultActive") {
+    if (confirm("¿Salir de la consulta? El borrador queda guardado y podés retomarlo.")) {
+      stopRecognition();
+      goto("patient", { patientId: route.patientId });
+    }
+    return;
+  }
+  if (route.name === "consultReview") return goto("consultActive", { patientId: route.patientId, encounterId: route.encounterId });
+  goto("home");
+};
+
+/* ---------- HOME ---------- */
+function renderHome() {
+  const patients = Object.values(DB.patients).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  let html = '<main>';
+  html += '<div class="brand"><div class="mark">Cl</div><h1>Historia clínica</h1><p>Documentación clínica asistida por voz</p></div>';
+  html += '<div class="search-box"><span class="icon">🔍</span><input id="searchInput" placeholder="Buscar por nombre, apellido o DNI" oninput="__onSearch(this.value)"></div>';
+  html += '<button class="btn btn-primary" onclick="goto(\'newPatient\')">+ Nuevo paciente</button>';
+  html += '<div id="patientList"></div>';
+  html += '</main>';
+  app.innerHTML = html;
+  renderPatientList(patients, "");
+}
+function renderPatientList(patients, query) {
+  const q = (query || "").toLowerCase().trim();
+  const filtered = q ? patients.filter(p =>
+    (p.nombre + " " + p.apellido).toLowerCase().includes(q) || (p.dni || "").includes(q)
+  ) : patients;
+  const label = q ? "Resultados" : "Pacientes recientes";
+  let html = '<div class="section-label">' + label + '</div>';
+  if (filtered.length === 0) {
+    html += '<div class="empty-state"><p>' + (q ? "No se encontraron pacientes." : "Todavía no cargaste pacientes.") + '</p></div>';
+  } else {
+    for (const p of filtered.slice(0, q ? 50 : 8)) {
+      const edad = calcEdad(p.fechaNacimiento);
+      html += '<div class="patient-card" onclick="goto(\'patient\',{patientId:' + p.id + '})">' +
+        '<div class="avatar">' + initials(p.nombre, p.apellido) + '</div>' +
+        '<div class="info"><div class="name">' + esc(p.apellido) + ', ' + esc(p.nombre) + '</div>' +
+        '<div class="meta">' + (edad !== null ? edad + " años" : "Edad no cargada") + (p.dni ? " · DNI " + esc(p.dni) : "") + '</div></div>' +
+        '<div class="chev">›</div></div>';
+    }
+  }
+  document.getElementById("patientList").innerHTML = html;
+}
+window.__onSearch = function (v) {
+  const patients = Object.values(DB.patients).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  renderPatientList(patients, v);
+};
+
+/* ---------- NUEVO PACIENTE (por voz) ---------- */
+let npRecognizing = false;
+let npRecognition = null;
+let npTranscript = [];
+let npDirty = {}; // campos que el medico ya corrigio a mano: la voz no los vuelve a pisar
+
+function renderNewPatient() {
+  npTranscript = [];
+  npDirty = {};
+  npRecognizing = false;
+  let html = topbar("Nuevo paciente");
+  html += '<main>';
+
+  if (SPEECH_SUPPORTED) {
+    html += '<div class="record-hero" style="padding-top:10px;">';
+    html += '<button class="mic-button" id="npMicBtn" style="width:100px;height:100px;font-size:34px;">🎙</button>';
+    html += '<div class="hint" id="npHint">Tocá y decí: "Paciente Juan Pérez, documento 30111222, 56 años, teléfono…, obra social…, vive en…"</div>';
+    html += '</div>';
+    html += '<div class="transcript-feed" id="npFeed" style="max-height:110px;display:none;"></div>';
+  } else {
+    html += '<div class="unsupported-banner">Este navegador no soporta dictado por voz. Completá los campos manualmente.</div>';
+  }
+
+  html += '<div class="form-row"><div class="form-group"><label>Nombre <span class="required-mark">*</span></label><input id="f_nombre" oninput="__npMarkDirty(\'nombre\')"></div>' +
+    '<div class="form-group"><label>Apellido <span class="required-mark">*</span></label><input id="f_apellido" oninput="__npMarkDirty(\'apellido\')"></div></div>';
+  html += '<div class="form-group"><label>DNI / documento</label><input id="f_dni" inputmode="numeric" oninput="__npMarkDirty(\'dni\')"></div>';
+  html += '<div class="form-row"><div class="form-group"><label>Fecha de nacimiento</label><input id="f_fnac" type="date" oninput="__npMarkDirty(\'fnac\')"><div class="small-note" id="npFechaHint" style="display:none;margin:4px 0 0;text-align:left;">Estimada a partir de la edad dicha. Verificar.</div></div>' +
+    '<div class="form-group"><label>Sexo</label><select id="f_sexo" onchange="__npMarkDirty(\'sexo\')"><option value="">—</option><option>Femenino</option><option>Masculino</option><option>Otro</option></select></div></div>';
+  html += '<div class="form-group"><label>Teléfono</label><input id="f_tel" type="tel" oninput="__npMarkDirty(\'tel\')"></div>';
+  html += '<div class="form-row"><div class="form-group"><label>Obra social</label><input id="f_os" oninput="__npMarkDirty(\'os\')"></div>' +
+    '<div class="form-group"><label>N° de afiliado</label><input id="f_nroaf" oninput="__npMarkDirty(\'nroaf\')"></div></div>';
+  html += '<div class="form-group"><label>Domicilio</label><input id="f_dom" oninput="__npMarkDirty(\'dom\')"></div>';
+  html += '<button class="btn btn-primary" onclick="__createPatient()">Crear paciente</button>';
+  html += '</main>';
+  app.innerHTML = html;
+
+  const micBtn = document.getElementById("npMicBtn");
+  if (micBtn) micBtn.onclick = __npToggleMic;
+}
+window.__npMarkDirty = function (field) { npDirty[field] = true; };
+
+function applyPatientFields(parsed) {
+  if (!parsed) return;
+  const setIfNotDirty = function (field, elId, value) {
+    if (value === null || value === undefined || value === "") return;
+    if (npDirty[field]) return;
+    const el = document.getElementById(elId);
+    if (el) el.value = value;
+  };
+  setIfNotDirty("nombre", "f_nombre", parsed.nombre);
+  setIfNotDirty("apellido", "f_apellido", parsed.apellido);
+  setIfNotDirty("dni", "f_dni", parsed.dni);
+  setIfNotDirty("tel", "f_tel", parsed.telefono);
+  setIfNotDirty("os", "f_os", parsed.obraSocial);
+  setIfNotDirty("nroaf", "f_nroaf", parsed.nroAfiliado);
+  setIfNotDirty("dom", "f_dom", parsed.domicilio);
+  setIfNotDirty("sexo", "f_sexo", parsed.sexo);
+  setIfNotDirty("fnac", "f_fnac", parsed.fechaNacimiento);
+  const hint = document.getElementById("npFechaHint");
+  if (hint) hint.style.display = parsed.fechaEsAproximada && parsed.fechaNacimiento && !npDirty.fnac ? "block" : "none";
+}
+let npAIDebounceTimer = null;
+let npAIInFlight = false;
+function __npScheduleAIRefine(fullText) {
+  clearTimeout(npAIDebounceTimer);
+  npAIDebounceTimer = setTimeout(function () {
+    if (npAIInFlight) return; // se refina en la próxima tanda si esta sigue en curso
+    npAIInFlight = true;
+    fetch("/.netlify/functions/extract-patient", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ transcript: fullText }),
+    })
+      .then(function (resp) { if (!resp.ok) throw new Error("HTTP " + resp.status); return resp.json(); })
+      .then(function (data) {
+        if (data && data.error) throw new Error(data.error);
+        applyPatientFields(data); // refina lo que el motor local no captó bien
+      })
+      .catch(function (err) {
+        console.error("extract-patient (IA) falló, se mantiene el resultado del motor local:", err);
+      })
+      .finally(function () { npAIInFlight = false; });
+  }, 900);
+}
+function __npApplyParsed() {
+  const fullText = npTranscript.join(" ");
+  // Aplicación instantánea con el motor local (siempre funciona, incluso sin red)...
+  applyPatientFields(extractPatientData(fullText));
+  // ...y en paralelo, afinamos con la IA real cuando responda.
+  __npScheduleAIRefine(fullText);
+}
+
+window.__npToggleMic = function () {
+  if (npRecognizing) { __npStopMic(); } else { __npStartMic(); }
+};
+function __npStartMic() {
+  if (!SPEECH_SUPPORTED) return;
+  // Todo esto corre SINCRÓNICAMENTE dentro del click, a propósito (ver nota arriba).
+  try {
+    npRecognition = new SpeechRecognitionAPI();
+    npRecognition.lang = "es-AR";
+    npRecognition.continuous = true;
+    npRecognition.interimResults = false;
+    npRecognition.onresult = function (event) {
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          const text = event.results[i][0].transcript.trim();
+          if (text) {
+            npTranscript.push(text);
+            __npApplyParsed();
+            const feed = document.getElementById("npFeed");
+            if (feed) { feed.style.display = "block"; feed.textContent = npTranscript.join(" "); feed.scrollTop = feed.scrollHeight; }
+          }
+        }
+      }
+    };
+    npRecognition.onerror = function (ev) {
+      if (isMicPermissionError(ev.error)) {
+        __npStopMic();
+        showMicPermissionSheet(__npStartMic);
+      }
+      // "no-speech"/"aborted"/"network": se ignoran, el motor suele recuperarse solo
+    };
+    npRecognition.onend = function () {
+      if (npRecognizing) { try { npRecognition.start(); } catch (e2) {} }
+    };
+    npRecognition.start();
+    npRecognizing = true;
+    const btn = document.getElementById("npMicBtn");
+    const hint = document.getElementById("npHint");
+    if (btn) btn.classList.add("recording");
+    if (btn) btn.textContent = "⏸";
+    if (hint) hint.textContent = "Escuchando… tocá de nuevo para detener.";
+  } catch (err) {
+    showToast("No se pudo iniciar el micrófono");
+  }
+}
+function __npStopMic() {
+  npRecognizing = false;
+  if (npRecognition) { try { npRecognition.onend = null; npRecognition.stop(); } catch (e) {} }
+  const btn = document.getElementById("npMicBtn");
+  const hint = document.getElementById("npHint");
+  if (btn) btn.classList.remove("recording");
+  if (btn) btn.textContent = "🎙";
+  if (hint) hint.textContent = "Tocá para seguir dictando, o corregí los campos a mano.";
+}
+window.__createPatient = function () {
+  const nombre = document.getElementById("f_nombre").value.trim();
+  const apellido = document.getElementById("f_apellido").value.trim();
+  if (!nombre || !apellido) { showToast("Nombre y apellido son obligatorios"); return; }
+  __npStopMic();
+  const id = uid(DB, "nextPatientId");
+  DB.patients[id] = {
+    id, nombre, apellido,
+    dni: document.getElementById("f_dni").value.trim(),
+    fechaNacimiento: document.getElementById("f_fnac").value,
+    sexo: document.getElementById("f_sexo").value,
+    telefono: document.getElementById("f_tel").value.trim(),
+    obraSocial: document.getElementById("f_os").value.trim(),
+    nroAfiliado: document.getElementById("f_nroaf").value.trim(),
+    domicilio: document.getElementById("f_dom").value.trim(),
+    antecedentes_personales: [], antecedentes_quirurgicos: [], alergias: [],
+    medicacion_habitual: [], antecedentes_familiares: [], habitos: [],
+    createdAt: Date.now(), updatedAt: Date.now(),
+  };
+  saveStore();
+  showToast("Paciente creado");
+  goto("patient", { patientId: id });
+};
+
+/* ---------- CARPETA DEL PACIENTE ---------- */
+function patientEncounters(patientId) {
+  return Object.values(DB.encounters).filter(e => e.patientId === patientId).sort((a, b) => b.createdAt - a.createdAt);
+}
+function renderPatient() {
+  const p = DB.patients[route.patientId];
+  if (!p) { goto("home"); return; }
+  const edad = calcEdad(p.fechaNacimiento);
+  const encs = patientEncounters(p.id);
+  let html = topbar(p.nombre + " " + p.apellido);
+  html += '<main>';
+  html += '<div class="patient-header"><div class="name">' + esc(p.nombre) + ' ' + esc(p.apellido) + '</div>' +
+    '<div class="meta">' + (edad !== null ? edad + " años" : "Edad no cargada") + (p.dni ? " · DNI " + esc(p.dni) : " · DNI no cargado") + '</div></div>';
+  html += '<button class="btn btn-primary" onclick="__startConsult(' + p.id + ')">🎙 Nueva consulta</button>';
+  html += '<div class="action-grid" style="margin-top:10px;">' +
+    '<button class="action-tile" onclick="goto(\'patientData\',{patientId:' + p.id + '})"><span class="ic">🗂</span>Datos del paciente</button>' +
+    '<button class="action-tile" onclick="goto(\'patientAntecedentes\',{patientId:' + p.id + '})"><span class="ic">📋</span>Antecedentes</button>' +
+    '</div>';
+  html += '<div class="section-label">Historial de consultas</div>';
+  if (encs.length === 0) {
+    html += '<div class="empty-state"><p>Todavía no hay consultas registradas.</p></div>';
+  } else {
+    html += '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:4px 14px;">';
+    for (const e of encs) {
+      const f = fmtDate(e.createdAt);
+      const titulo = (e.structured && e.structured.motivo_consulta && e.structured.motivo_consulta.texto) || (e.status === "draft" ? "Consulta sin finalizar" : "Consulta");
+      html += '<div class="encounter-row" onclick="__openEncounter(' + e.id + ')">' +
+        '<div class="date"><div class="d">' + f.d + '</div><div class="m">' + f.m + '</div></div>' +
+        '<div class="info"><div class="title">' + esc(titulo.slice(0, 46)) + '</div>' +
+        '<div class="sub">' + (e.status === "approved" ? "Aprobada" : "Borrador") + '</div></div>' +
+        '<span class="badge ' + (e.status === "approved" ? "badge-approved" : "badge-draft") + '">' + (e.status === "approved" ? "OK" : "…") + '</span>' +
+        '</div>';
+    }
+    html += '</div>';
+  }
+  html += '</main>';
+  app.innerHTML = html;
+}
+window.__openEncounter = function (encId) {
+  const e = DB.encounters[encId];
+  if (e.status === "draft") { goto("consultActive", { patientId: e.patientId, encounterId: e.id }); }
+  else { goto("encounterView", { patientId: e.patientId, encounterId: e.id }); }
+};
+
+function renderPatientData() {
+  const p = DB.patients[route.patientId];
+  let html = topbar("Datos del paciente");
+  html += '<main>';
+  const rows = [
+    ["Nombre", p.nombre], ["Apellido", p.apellido], ["DNI", p.dni], ["Fecha de nacimiento", p.fechaNacimiento],
+    ["Edad", calcEdad(p.fechaNacimiento) !== null ? calcEdad(p.fechaNacimiento) + " años" : null],
+    ["Sexo", p.sexo], ["Teléfono", p.telefono], ["Obra social", p.obraSocial],
+    ["N° de afiliado", p.nroAfiliado], ["Domicilio", p.domicilio],
+  ];
+  for (const [label, val] of rows) {
+    html += '<div class="hc-field"><div class="field-label">' + label + '</div>' +
+      (val ? '<div>' + esc(val) + '</div>' : '<div class="not-registered">No registrado</div>') + '</div>';
+  }
+  html += '</main>';
+  app.innerHTML = html;
+}
+
+function renderAntecedentes() {
+  const p = DB.patients[route.patientId];
+  let html = topbar("Antecedentes permanentes");
+  html += '<main>';
+  html += '<p class="small-note" style="margin-bottom:14px;">Estos son los antecedentes permanentes del paciente, acumulados a lo largo de sus consultas. No se modifican automáticamente: cada agregado requiere tu aprobación.</p>';
+  const groups = [
+    ["antecedentes_personales", "Antecedentes personales"],
+    ["antecedentes_quirurgicos", "Quirúrgicos"],
+    ["alergias", "Alergias"],
+    ["medicacion_habitual", "Medicación habitual"],
+    ["antecedentes_familiares", "Familiares"],
+    ["habitos", "Hábitos"],
+  ];
+  for (const [key, label] of groups) {
+    const items = p[key] || [];
+    html += '<div class="hc-field"><div class="field-label">' + label + '</div>';
+    if (items.length === 0) html += '<div class="not-registered">No registrado</div>';
+    else {
+      html += '<div class="hc-tag-row">';
+      for (const it of items) html += '<span class="hc-tag">' + esc(it.texto || it) + '</span>';
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+  html += '</main>';
+  app.innerHTML = html;
+}
+
+/* ---------- INICIO DE CONSULTA / CONSENTIMIENTO ---------- */
+window.__startConsult = function (patientId) {
+  showConsentSheet(patientId);
+};
+function showConsentSheet(patientId) {
+  const overlay = document.createElement("div");
+  overlay.className = "consent-overlay";
+  overlay.innerHTML =
+    '<div class="consent-sheet">' +
+    '<h2>Consentimiento para grabar</h2>' +
+    '<p>Antes de comenzar, informá al paciente que la consulta va a transcribirse en el teléfono para armar la historia clínica, y que él/ella puede pedir que se detenga en cualquier momento. Nada de esto se envía a servidores externos: la transcripción ocurre en el propio dispositivo.</p>' +
+    '<div class="btn-block-row">' +
+    '<button class="btn btn-secondary" id="consentNo">Sin grabación</button>' +
+    '<button class="btn btn-primary" id="consentYes">Paciente aceptó</button>' +
+    '</div></div>';
+  document.body.appendChild(overlay);
+  document.getElementById("consentYes").onclick = function () {
+    document.body.removeChild(overlay);
+    beginEncounter(patientId, true);
+  };
+  document.getElementById("consentNo").onclick = function () {
+    document.body.removeChild(overlay);
+    beginEncounter(patientId, false);
+  };
+}
+function beginEncounter(patientId, withRecording) {
+  const id = uid(DB, "nextEncounterId");
+  DB.encounters[id] = {
+    id, patientId, createdAt: Date.now(), updatedAt: Date.now(),
+    status: "draft", withRecording,
+    consent: { given: withRecording, at: Date.now() },
+    transcript: [],
+    structured: null,
+    permanentSuggestions: [],
+    seconds: 0,
+  };
+  saveStore();
+  goto("consultActive", { patientId, encounterId: id });
+}
+
+/* ---------- CONSULTA ACTIVA ---------- */
+let recognition = null;
+let recTimerHandle = null;
+let recognizing = false;
+
+function renderConsultActive() {
+  const e = DB.encounters[route.encounterId];
+  const p = DB.patients[route.patientId];
+  if (!e || !p) { goto("home"); return; }
+  let html = topbar("Consulta en curso");
+  html += '<main>';
+
+  // El micrófono solo se ofrece si el paciente dio consentimiento para grabar
+  // Y el navegador soporta reconocimiento de voz. Si falta cualquiera de las
+  // dos condiciones, la consulta funciona en modo 100% manual (sin escuchar
+  // el micrófono en ningún momento).
+  const useVoice = e.withRecording && SPEECH_SUPPORTED;
+
+  if (!e.withRecording) {
+    html += '<div class="unsupported-banner">Modo sin grabación (el paciente no dio consentimiento para grabar). Escribí manualmente lo que necesites registrar.</div>';
+  } else if (!SPEECH_SUPPORTED) {
+    html += '<div class="unsupported-banner">Este navegador no soporta transcripción de voz automática. Escribí manualmente cada intervención abajo.</div>';
+  }
+
+  if (useVoice) {
+    html += '<div class="record-hero">';
+    html += '<button class="mic-button" id="micBtn">' + (recognizing ? "⏸" : "🎙") + '</button>';
+    if (recognizing) {
+      html += '<div class="record-status"><span class="rec-dot"></span><span>CONSULTA EN CURSO</span></div>';
+    } else {
+      html += '<div class="hint">' + (e.transcript.length ? "Pausado. Tocá para continuar." : "Tocá para empezar. Hablá normalmente con el paciente.") + '</div>';
+    }
+    html += '<div class="timer" id="timerLabel">' + formatSecs(e.seconds) + '</div>';
+    html += '</div>';
+    html += '<p class="small-note" style="margin:0 0 12px;">No hace falta marcar quién habla: al finalizar, la IA organiza todo. Vas a poder revisar y corregir antes de guardar.</p>';
+  } else {
+    html += '<div class="timer" id="timerLabel" style="text-align:center;margin:14px 0;">' + formatSecs(e.seconds) + '</div>';
+  }
+
+  html += '<div class="transcript-feed" id="transcriptFeed"></div>';
+
+  html += '<div class="manual-input"><textarea id="manualText" placeholder="Agregar texto manualmente…" rows="1"></textarea>' +
+    '<button class="btn btn-secondary" style="width:auto;padding:10px 14px;" onclick="__addManual()">Agregar</button></div>';
+
+  html += '<div class="btn-block-row" style="margin-top:8px;">';
+  if (useVoice) {
+    html += '<button class="btn btn-secondary" onclick="__pauseRec()">' + (recognizing ? "Pausar" : "Continuar") + '</button>';
+  }
+  html += '<button class="btn btn-danger" onclick="__finishConsult()">Finalizar consulta</button>' +
+    '</div>';
+
+  html += '</main>';
+  app.innerHTML = html;
+  renderTranscriptFeed(e);
+
+  const micBtn = document.getElementById("micBtn");
+  if (micBtn) micBtn.onclick = toggleRecognition;
+
+  startEncounterTimer(e);
+}
+
+function formatSecs(s) {
+  const m = Math.floor(s / 60), r = s % 60;
+  return (m < 10 ? "0" : "") + m + ":" + (r < 10 ? "0" : "") + r;
+}
+function startEncounterTimer(e) {
+  clearInterval(recTimerHandle);
+  if (!recognizing) return;
+  recTimerHandle = setInterval(function () {
+    e.seconds += 1;
+    const lbl = document.getElementById("timerLabel");
+    if (lbl) lbl.textContent = formatSecs(e.seconds);
+    if (e.seconds % 5 === 0) saveStore(); // autoguardado periódico del borrador
+  }, 1000);
+}
+
+function renderTranscriptFeed(e) {
+  const feed = document.getElementById("transcriptFeed");
+  if (!feed) return;
+  if (e.transcript.length === 0) {
+    feed.innerHTML = '<div class="not-registered" style="text-align:center;padding:10px;">Todavía no hay texto transcripto.</div>';
+    return;
+  }
+  // Durante la grabación no se distingue hablante (eso lo infiere la IA recién
+  // al finalizar). Mostramos el texto plano, tal como se fue escuchando.
+  let html = "";
+  for (const l of e.transcript) {
+    html += '<div class="transcript-line"><span class="txt">' + esc(l.text) + '</span></div>';
+  }
+  feed.innerHTML = html;
+  feed.scrollTop = feed.scrollHeight;
+}
+
+function toggleRecognition() {
+  const e = DB.encounters[route.encounterId];
+  if (!e || !e.withRecording) { showToast("Esta consulta es sin grabación"); return; }
+  if (!SPEECH_SUPPORTED) { showToast("Este navegador no soporta reconocimiento de voz"); return; }
+  if (recognizing) { stopRecognition(); } else { startRecognitionEngine(); }
+}
+window.__pauseRec = function () {
+  if (recognizing) stopRecognition(); else startRecognitionEngine();
+};
+function startRecognitionEngine() {
+  const e = DB.encounters[route.encounterId];
+  // Sincrónico a propósito: nada de await antes de recognition.start() (ver nota arriba).
+  try {
+    recognition = new SpeechRecognitionAPI();
+    recognition.lang = "es-AR";
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    recognition.onresult = function (event) {
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          const text = event.results[i][0].transcript.trim();
+          if (text) {
+            e.transcript.push({ text, ts: Date.now() });
+            saveStore();
+            renderTranscriptFeed(e);
+          }
+        }
+      }
+    };
+    recognition.onerror = function (ev) {
+      if (isMicPermissionError(ev.error)) {
+        stopRecognition();
+        showMicPermissionSheet(startRecognitionEngine);
+      }
+      // otros errores (no-speech, network) se ignoran: el engine suele recuperarse solo
+    };
+    recognition.onend = function () {
+      if (recognizing) {
+        // el navegador corta el reconocimiento continuo cada tanto: reiniciar automáticamente
+        try { recognition.start(); } catch (e2) {}
+      }
+    };
+    recognition.start();
+    recognizing = true;
+    render();
+  } catch (err) {
+    showToast("No se pudo iniciar el micrófono");
+    console.error(err);
+  }
+}
+function stopRecognition() {
+  recognizing = false;
+  clearInterval(recTimerHandle);
+  if (recognition) {
+    try { recognition.onend = null; recognition.stop(); } catch (e) {}
+  }
+  const e = DB.encounters[route.encounterId];
+  if (e) saveStore();
+  render();
+}
+window.__addManual = function () {
+  const ta = document.getElementById("manualText");
+  const text = ta.value.trim();
+  if (!text) return;
+  const e = DB.encounters[route.encounterId];
+  e.transcript.push({ text, ts: Date.now() });
+  saveStore();
+  ta.value = "";
+  renderTranscriptFeed(e);
+};
+
+/* ---------- Llamada a la IA real (Netlify Function), con respaldo local ---------- */
+function buildPatientContextForAI(patient) {
+  return {
+    edad: calcEdad(patient.fechaNacimiento),
+    sexo: patient.sexo,
+    antecedentes_personales: (patient.antecedentes_personales || []).map(function (x) { return x.texto || x; }),
+    alergias: (patient.alergias || []).map(function (x) { return x.texto || x; }),
+    medicacion_habitual: (patient.medicacion_habitual || []).map(function (x) { return x.texto || x; }),
+  };
+}
+function callStructureAPI(transcriptText, patientContext) {
+  return fetch("/.netlify/functions/structure-consulta", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ transcript: transcriptText, patientContext: patientContext }),
+  }).then(function (resp) {
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
+    return resp.json();
+  }).then(function (data) {
+    if (data && data.error) throw new Error(data.error);
+    return data;
+  });
+}
+
+window.__finishConsult = function () {
+  stopRecognition();
+  const e = DB.encounters[route.encounterId];
+  const p = DB.patients[route.patientId];
+  if (e.transcript.length === 0) {
+    if (!confirm("No se registró ningún texto. ¿Finalizar igual?")) return;
+  }
+  const fullText = e.transcript.map(function (l) { return l.text; }).join(" ");
+
+  // Pantalla de espera simple mientras se llama a la IA
+  app.innerHTML = topbar("Analizando la consulta") +
+    '<main><div class="record-hero"><div class="hint">🧠 Organizando la historia clínica con IA…</div></div></main>';
+
+  callStructureAPI(fullText, buildPatientContextForAI(p))
+    .then(function (structured) {
+      e.structured = structured;
+      e.structuredBy = "ia";
+      finishConsultGoToReview(e);
+    })
+    .catch(function (err) {
+      console.error("Fallo la IA, usando motor local de respaldo:", err);
+      e.structured = clasificarTranscripcion(e.transcript.map(function (l) { return { speaker: null, text: l.text }; }));
+      e.structuredBy = "local_respaldo";
+      showToast("No se pudo conectar con la IA — se usó el motor local. Revisá con más atención.");
+      finishConsultGoToReview(e);
+    });
+};
+function finishConsultGoToReview(e) {
+  e.updatedAt = Date.now();
+  saveStore();
+  goto("consultReview", { patientId: route.patientId, encounterId: route.encounterId });
+}
+
+/* ---------- REVISIÓN DE CONSULTA ---------- */
+function renderConsultReview() {
+  const e = DB.encounters[route.encounterId];
+  const p = DB.patients[route.patientId];
+  if (!e || !p) { goto("home"); return; }
+  const s = e.structured || clasificarTranscripcion(e.transcript);
+  e.structured = s;
+
+  let html = topbar("Revisión de consulta");
+  html += '<main>';
+  html += '<p class="small-note" style="margin:0 0 16px;">Revisá y corregí cada campo. Nada queda guardado como definitivo hasta que apruebes.</p>';
+
+  // Alertas
+  if (s.alertas && s.alertas.length) {
+    html += '<div class="section-label">⚠️ Revisar</div>';
+    for (const a of s.alertas) html += '<div class="alert-box"><div class="title">Confirmar</div>' + esc(a.texto) + '</div>';
+  }
+
+  html += '<div class="section-label">Motivo de consulta</div>';
+  html += hcTextField("motivo_consulta", s.motivo_consulta.texto, s.motivo_consulta.estado === "no_registrado");
+
+  html += '<div class="section-label">Enfermedad actual</div>';
+  const eaTexto = s.enfermedad_actual.editado || [s.motivo_consulta.texto, ...(s.enfermedad_actual.fragmentos || [])].filter(Boolean).join(" ");
+  html += hcTextField("enfermedad_actual", eaTexto, !eaTexto);
+
+  html += '<div class="section-label">Examen físico</div>';
+  html += renderVitals(s.examen_fisico);
+
+  html += tagFieldSection("antecedentes_personales", "Antecedentes personales", s.antecedentes_personales);
+  html += tagFieldSection("antecedentes_quirurgicos", "Antecedentes quirúrgicos", s.antecedentes_quirurgicos);
+  html += tagFieldSection("internaciones_previas", "Internaciones previas", s.internaciones_previas);
+  html += tagFieldSection("alergias", "Alergias", s.alergias);
+  html += medFieldSection(s.medicacion_habitual);
+  html += tagFieldSection("habitos", "Hábitos", s.habitos);
+  html += tagFieldSection("antecedentes_familiares", "Antecedentes familiares", s.antecedentes_familiares);
+
+  html += '<div class="section-label">Estudios complementarios</div>';
+  const estudiosVal = s.estudios_complementarios_editado || (s.estudios_complementarios||[]).map(x=>x.texto).join(" ");
+  html += hcTextField("estudios_complementarios", estudiosVal, !estudiosVal);
+
+  html += '<div class="section-label">Impresión diagnóstica</div>';
+  if (!s.impresion_diagnostica.length) {
+    html += '<div class="hc-field"><div class="not-registered">No registrado</div></div>';
+  } else {
+    for (const d of s.impresion_diagnostica) {
+      html += '<div class="hc-field"><div class="field-label">' + (d.tipo === "diferencial_o_a_descartar" ? "Diferencial / a descartar" : "Revisar si es confirmado") + '</div>' + esc(d.texto) + '</div>';
+    }
+  }
+
+  html += '<div class="section-label">Plan</div>';
+  if (!s.plan.length) html += '<div class="hc-field"><div class="not-registered">No registrado</div></div>';
+  else for (const pl of s.plan) html += '<div class="hc-field">' + esc(pl.texto) + '</div>';
+
+  // Sugerencias de antecedentes permanentes
+  const sugs = buildPermanentSuggestions(p, s);
+  if (sugs.length) {
+    html += '<div class="section-label">Agregar a antecedentes permanentes</div>';
+    sugs.forEach(function (sg, i) {
+      html += '<div class="suggest-box"><div class="txt">' + esc(sg.label) + ': ' + esc(sg.texto) + '</div>' +
+        '<div class="row"><button class="discard" onclick="__discardSug(' + i + ')">Descartar</button>' +
+        '<button class="accept" onclick="__acceptSug(' + i + ')">Agregar</button></div></div>';
+    });
+  }
+
+  html += '<div class="section-label">Transcripción original</div>';
+  html += renderTranscriptOriginal(e);
+
+  html += '<div style="height:14px;"></div>';
+  html += '<button class="btn btn-primary" onclick="__approveEncounter()">Guardar consulta</button>';
+  html += '</main>';
+  app.innerHTML = html;
+  window.__currentSuggestions = sugs;
+}
+function renderTranscriptOriginal(e) {
+  // Si la IA ya interpretó quién dijo qué, se muestra esa versión (marcada
+  // como inferida). Si no (respaldo local, o todavía no se analizó), se
+  // muestra el texto plano sin adivinar hablante.
+  const interpretada = e.structured && e.structured.transcripcion_interpretada;
+  let html = '<div class="transcript-full">';
+  if (!e.transcript.length) {
+    html += '<div class="not-registered">Sin transcripción</div>';
+  } else if (interpretada && interpretada.length) {
+    html += '<p class="small-note" style="margin:0 0 10px;text-align:left;">Hablante inferido por la IA a partir del contenido — no es una certeza.</p>';
+    for (const l of interpretada) {
+      const whoClass = l.hablante === "MEDICO" ? "who-medico" : l.hablante === "PACIENTE" ? "who-paciente" : "who-na";
+      const whoLabel = l.hablante === "MEDICO" ? "Médico (inferido)" : l.hablante === "PACIENTE" ? "Paciente (inferido)" : "Incierto";
+      html += '<div class="transcript-line"><span class="who ' + whoClass + '">' + whoLabel + '</span><br><span class="txt">' + esc(l.texto) + '</span></div>';
+    }
+  } else {
+    for (const l of e.transcript) {
+      html += '<div class="transcript-line"><span class="txt">' + esc(l.text) + '</span></div>';
+    }
+  }
+  html += '</div>';
+  return html;
+}
+function hcTextField(key, value, isEmpty) {
+  return '<div class="hc-field"><textarea id="fld_' + key + '" oninput="__markEdited(\'' + key + '\')">' + esc(value || "") + '</textarea>' +
+    (isEmpty ? '<div class="not-registered" style="margin-top:4px;">No registrado — completalo si corresponde</div>' : '') + '</div>';
+}
+function renderVitals(v) {
+  const fields = [["TA","TA"],["FC","FC"],["FR","FR"],["SpO2","SpO₂"],["T","T°"],["peso","Peso"],["talla","Talla"]];
+  let html = '<div class="hc-field"><div class="vitals-grid">';
+  for (const [key, label] of fields) {
+    html += '<div class="vital-box"><div class="lbl">' + label + '</div><input id="vit_' + key + '" value="' + esc(v[key] || "") + '" placeholder="No reg."></div>';
+  }
+  html += '</div></div>';
+  return html;
+}
+function tagFieldSection(key, label, items) {
+  let html = '<div class="section-label">' + label + '</div><div class="hc-field" id="sec_' + key + '">';
+  if (!items || items.length === 0) {
+    html += '<div class="not-registered">No registrado</div>';
+  } else {
+    html += '<div class="hc-tag-row">';
+    for (const it of items) {
+      const negado = it.estado === "negado_explicitamente";
+      html += '<span class="hc-tag' + (negado ? " negado" : "") + '" title="' + esc(it.fuente || "") + '">' + esc(it.texto) + (negado ? " (negado)" : "") + '</span>';
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+function medFieldSection(meds) {
+  let html = '<div class="section-label">Medicación habitual</div><div class="hc-field">';
+  if (!meds || meds.length === 0) html += '<div class="not-registered">No registrado</div>';
+  else {
+    for (const m of meds) {
+      html += '<div style="margin-bottom:6px;"><strong>' + esc(m.principio_activo_probable) + '</strong> ' + esc(m.dosis || "") +
+        (m.frecuencia ? " — " + esc(m.frecuencia) : "") + ' <span class="not-registered">(confirmar)</span></div>';
+    }
+  }
+  html += '</div>';
+  return html;
+}
+function buildPermanentSuggestions(patient, s) {
+  const sugs = [];
+  const existing = function (arr, texto) { return (arr || []).some(x => (x.texto || x) === texto); };
+  for (const a of s.antecedentes_personales || []) {
+    if (a.estado === "positivo" && !existing(patient.antecedentes_personales, a.texto)) {
+      sugs.push({ campo: "antecedentes_personales", label: "Antecedente", texto: a.texto });
+    }
+  }
+  for (const a of s.alergias || []) {
+    if (a.estado === "positivo_revisar" && !existing(patient.alergias, a.texto)) {
+      sugs.push({ campo: "alergias", label: "Alergia", texto: a.texto });
+    }
+  }
+  for (const m of s.medicacion_habitual || []) {
+    const label = m.principio_activo_probable + " " + (m.dosis || "");
+    if (!existing(patient.medicacion_habitual, label)) {
+      sugs.push({ campo: "medicacion_habitual", label: "Medicación", texto: label.trim() });
+    }
+  }
+  for (const c of s.antecedentes_quirurgicos || []) {
+    if (!existing(patient.antecedentes_quirurgicos, c.texto)) {
+      sugs.push({ campo: "antecedentes_quirurgicos", label: "Cirugía", texto: c.texto });
+    }
+  }
+  return sugs;
+}
+window.__acceptSug = function (i) {
+  const p = DB.patients[route.patientId];
+  const sg = window.__currentSuggestions[i];
+  if (!sg) return;
+  p[sg.campo] = p[sg.campo] || [];
+  p[sg.campo].push({ texto: sg.texto, addedAt: Date.now(), fromEncounterId: route.encounterId });
+  p.updatedAt = Date.now();
+  saveStore();
+  showToast("Agregado a antecedentes permanentes");
+  renderConsultReview();
+};
+window.__discardSug = function (i) {
+  window.__currentSuggestions[i] = null;
+  const boxes = document.querySelectorAll(".suggest-box");
+  if (boxes[i]) boxes[i].remove();
+};
+window.__markEdited = function () {}; // placeholder: el valor se toma directo del DOM al guardar
+
+window.__approveEncounter = function () {
+  const e = DB.encounters[route.encounterId];
+  const s = e.structured;
+
+  s.motivo_consulta.texto = document.getElementById("fld_motivo_consulta").value.trim();
+  s.enfermedad_actual.editado = document.getElementById("fld_enfermedad_actual").value.trim();
+  s.estudios_complementarios_editado = document.getElementById("fld_estudios_complementarios").value.trim();
+  ["TA","FC","FR","SpO2","T","peso","talla"].forEach(function (k) {
+    const el = document.getElementById("vit_" + k);
+    if (el) s.examen_fisico[k] = el.value.trim();
+  });
+
+  e.status = "approved";
+  e.approvedAt = Date.now();
+  e.updatedAt = Date.now();
+  saveStore();
+  showToast("Consulta guardada");
+  goto("patient", { patientId: route.patientId });
+};
+
+/* ---------- VER CONSULTA GUARDADA (solo lectura simple) ---------- */
+function renderEncounterView() {
+  const e = DB.encounters[route.encounterId];
+  const p = DB.patients[route.patientId];
+  if (!e || !p) { goto("home"); return; }
+  const s = e.structured || {};
+  const f = fmtDate(e.createdAt);
+  let html = topbar(f.full);
+  html += '<main>';
+  html += '<div class="hc-field"><div class="field-label">Motivo de consulta</div>' + (s.motivo_consulta && s.motivo_consulta.texto ? esc(s.motivo_consulta.texto) : '<div class="not-registered">No registrado</div>') + '</div>';
+  const ea = (s.enfermedad_actual && s.enfermedad_actual.editado) ||
+    [s.motivo_consulta && s.motivo_consulta.texto, ...((s.enfermedad_actual && s.enfermedad_actual.fragmentos) || [])].filter(Boolean).join(" ");
+  html += '<div class="hc-field"><div class="field-label">Enfermedad actual</div>' + (ea ? esc(ea) : '<div class="not-registered">No registrado</div>') + '</div>';
+  html += '<div class="section-label">Examen físico</div>' + renderVitalsReadonly(s.examen_fisico || {});
+  html += tagFieldSection("_ap", "Antecedentes personales", s.antecedentes_personales);
+  html += tagFieldSection("_aq", "Antecedentes quirúrgicos", s.antecedentes_quirurgicos);
+  html += tagFieldSection("_al", "Alergias", s.alergias);
+  html += medFieldSection(s.medicacion_habitual);
+  html += tagFieldSection("_ha", "Hábitos", s.habitos);
+  html += tagFieldSection("_af", "Antecedentes familiares", s.antecedentes_familiares);
+  html += '<div class="section-label">Estudios complementarios</div>';
+  var estudiosTxt = s.estudios_complementarios_editado || (s.estudios_complementarios||[]).map(function(x){return x.texto;}).join(" ");
+  html += '<div class="hc-field">' + (estudiosTxt ? esc(estudiosTxt) : '<div class="not-registered">No registrado</div>') + '</div>';
+  html += '<div class="section-label">Impresión diagnóstica</div>';
+  if (!(s.impresion_diagnostica||[]).length) html += '<div class="hc-field"><div class="not-registered">No registrado</div></div>';
+  else for (const d of s.impresion_diagnostica) html += '<div class="hc-field">' + esc(d.texto) + '</div>';
+  html += '<div class="section-label">Plan</div>';
+  if (!(s.plan||[]).length) html += '<div class="hc-field"><div class="not-registered">No registrado</div></div>';
+  else for (const pl of s.plan) html += '<div class="hc-field">' + esc(pl.texto) + '</div>';
+  html += '<div class="section-label">Transcripción original</div>';
+  html += renderTranscriptOriginal(e);
+  html += '</main>';
+  app.innerHTML = html;
+}
+function renderVitalsReadonly(v) {
+  const fields = [["TA","TA"],["FC","FC"],["FR","FR"],["SpO2","SpO₂"],["T","T°"],["peso","Peso"],["talla","Talla"]];
+  let html = '<div class="hc-field"><div class="vitals-grid">';
+  for (const [key, label] of fields) html += '<div class="vital-box"><div class="lbl">' + label + '</div><div class="val">' + esc(v[key] || "—") + '</div></div>';
+  html += '</div></div>';
+  return html;
+}
+
+/* ---------- INICIO ---------- */
+render();
+})();
+</script>
+</body>
+</html>
