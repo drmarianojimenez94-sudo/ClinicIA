@@ -360,6 +360,26 @@ function saveStore() {
 }
 let DB = loadStore();
 
+window.__exportBackup = function () {
+  try {
+    const data = JSON.stringify(DB, null, 2);
+    const blob = new Blob([data], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const stamp = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = "clinia-backup-" + stamp + ".json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast("Respaldo descargado");
+  } catch (e) {
+    console.error("Error generando el respaldo", e);
+    showToast("No se pudo generar el respaldo");
+  }
+};
+
 function showToast(msg) {
   const t = document.getElementById("toast");
   t.textContent = msg;
@@ -723,6 +743,8 @@ function renderHome() {
   html += '<div class="search-box"><span class="icon">🔍</span><input id="searchInput" placeholder="Buscar por nombre, apellido o DNI" oninput="__onSearch(this.value)"></div>';
   html += '<button class="btn btn-primary" onclick="goto(\'newPatient\')">+ Nuevo paciente</button>';
   html += '<div id="patientList"></div>';
+  html += '<button class="btn btn-ghost" style="margin-top:18px;" onclick="__exportBackup()">⬇️ Exportar todo (respaldo)</button>';
+  html += '<p class="small-note">Todo se guarda solo en este teléfono. Hacé un respaldo de tanto en tanto para no perder la historia clínica si cambiás de equipo.</p>';
   html += '</main>';
   app.innerHTML = html;
   renderPatientList(patients, "");
@@ -1274,6 +1296,58 @@ function finishConsultGoToReview(e) {
   goto("consultReview", { patientId: route.patientId, encounterId: route.encounterId });
 }
 
+/* ---------- REINTENTAR CON IA / REDACTAR CAMPO CON IA ----------
+   Pensado para el médico apurado: si la primera pasada usó el motor
+   local (por una falla de red) o el resultado de la IA no quedó
+   bien, esto reintenta sin tener que volver a grabar la consulta. */
+window.__retryAI = function () {
+  const e = DB.encounters[route.encounterId];
+  const p = DB.patients[route.patientId];
+  if (!e || !p) return;
+  if (!confirm("¿Volver a organizar esta consulta con IA? Se pierden los cambios manuales hechos en esta pantalla (la transcripción original no se toca).")) return;
+  const fullText = e.transcript.map(function (l) { return l.text; }).join(" ");
+  app.innerHTML = topbar("Analizando la consulta") +
+    '<main><div class="record-hero"><div class="hint">🧠 Organizando la historia clínica con IA…</div></div></main>';
+  callStructureAPI(fullText, buildPatientContextForAI(p))
+    .then(function (structured) {
+      e.structured = structured;
+      e.structuredBy = "ia";
+      e.updatedAt = Date.now();
+      saveStore();
+      renderConsultReview();
+    })
+    .catch(function (err) {
+      console.error("Reintento de IA falló:", err);
+      showToast("No se pudo conectar con la IA. Seguís con el resultado anterior.");
+      renderConsultReview();
+    });
+};
+window.__rewriteField = function (key) {
+  const ta = document.getElementById("fld_" + key);
+  if (!ta) return;
+  const original = ta.value.trim();
+  if (!original) { showToast("No hay texto para redactar"); return; }
+  const btn = document.getElementById("rw_" + key);
+  if (btn) { btn.disabled = true; btn.textContent = "Redactando…"; }
+  fetch("/.netlify/functions/rewrite-field", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ texto: original }),
+  })
+    .then(function (resp) { if (!resp.ok) throw new Error("HTTP " + resp.status); return resp.json(); })
+    .then(function (data) {
+      if (data && data.error) throw new Error(data.error);
+      ta.value = data.texto;
+    })
+    .catch(function (err) {
+      console.error("rewrite-field falló:", err);
+      showToast("No se pudo redactar con IA");
+    })
+    .finally(function () {
+      if (btn) { btn.disabled = false; btn.textContent = "✨ Redactar con IA"; }
+    });
+};
+
 /* ---------- REVISIÓN DE CONSULTA ---------- */
 function structuredByBanner(structuredBy) {
   if (structuredBy === "local_respaldo") {
@@ -1295,6 +1369,7 @@ function renderConsultReview() {
   html += '<main>';
   html += '<p class="small-note" style="margin:0 0 16px;">Revisá y corregí cada campo. Nada queda guardado como definitivo hasta que apruebes.</p>';
   html += structuredByBanner(e.structuredBy);
+  html += '<button class="btn btn-secondary" style="margin-bottom:14px;" onclick="__retryAI()">↻ Reintentar organizar con IA</button>';
 
   // Alertas
   if (s.alertas && s.alertas.length) {
@@ -1307,7 +1382,7 @@ function renderConsultReview() {
 
   html += '<div class="section-label">Enfermedad actual</div>';
   const eaTexto = s.enfermedad_actual.editado || [s.motivo_consulta.texto, ...(s.enfermedad_actual.fragmentos || [])].filter(Boolean).join(" ");
-  html += hcTextField("enfermedad_actual", eaTexto, !eaTexto);
+  html += hcTextField("enfermedad_actual", eaTexto, !eaTexto, true);
 
   html += '<div class="section-label">Examen físico</div>';
   html += renderVitals(s.examen_fisico);
@@ -1322,7 +1397,7 @@ function renderConsultReview() {
 
   html += '<div class="section-label">Estudios complementarios</div>';
   const estudiosVal = s.estudios_complementarios_editado || (s.estudios_complementarios||[]).map(x=>x.texto).join(" ");
-  html += hcTextField("estudios_complementarios", estudiosVal, !estudiosVal);
+  html += hcTextField("estudios_complementarios", estudiosVal, !estudiosVal, true);
 
   html += '<div class="section-label">Impresión diagnóstica</div>';
   if (!s.impresion_diagnostica.length) {
@@ -1380,8 +1455,10 @@ function renderTranscriptOriginal(e) {
   html += '</div>';
   return html;
 }
-function hcTextField(key, value, isEmpty) {
-  return '<div class="hc-field"><textarea id="fld_' + key + '" oninput="__markEdited(\'' + key + '\')">' + esc(value || "") + '</textarea>' +
+function hcTextField(key, value, isEmpty, rewrite) {
+  const rewriteBtn = rewrite ?
+    '<button type="button" id="rw_' + key + '" class="add-tag-btn" style="border:none;background:none;font:inherit;display:block;margin:0 0 6px;padding:0;" onclick="__rewriteField(\'' + key + '\')">✨ Redactar con IA</button>' : '';
+  return '<div class="hc-field">' + rewriteBtn + '<textarea id="fld_' + key + '" oninput="__markEdited(\'' + key + '\')">' + esc(value || "") + '</textarea>' +
     (isEmpty ? '<div class="not-registered" style="margin-top:4px;">No registrado — completalo si corresponde</div>' : '') + '</div>';
 }
 function renderVitals(v) {
@@ -1484,6 +1561,86 @@ window.__approveEncounter = function () {
   goto("patient", { patientId: route.patientId });
 };
 
+/* ---------- COPIAR CONSULTA COMO TEXTO (para compartir rápido) ---------- */
+function buildPlainTextNote(p, e) {
+  const s = e.structured || {};
+  const edad = calcEdad(p.fechaNacimiento);
+  const lines = [];
+  lines.push((p.nombre || "") + " " + (p.apellido || "") +
+    (edad !== null ? " - " + edad + " años" : "") + (p.dni ? " - DNI " + p.dni : ""));
+  lines.push("Fecha: " + fmtDate(e.createdAt).full);
+  lines.push("");
+  function addSection(title, text) {
+    if (text) { lines.push(title + ":"); lines.push(text); lines.push(""); }
+  }
+  function addTagSection(title, items) {
+    if (items && items.length) {
+      lines.push(title + ": " + items.map(function (i) {
+        return i.texto + (i.estado === "negado_explicitamente" ? " (negado)" : "");
+      }).join(", "));
+      lines.push("");
+    }
+  }
+  addSection("Motivo de consulta", s.motivo_consulta && s.motivo_consulta.texto);
+  const ea = (s.enfermedad_actual && s.enfermedad_actual.editado) ||
+    [s.motivo_consulta && s.motivo_consulta.texto, ...((s.enfermedad_actual && s.enfermedad_actual.fragmentos) || [])].filter(Boolean).join(" ");
+  addSection("Enfermedad actual", ea);
+  const v = s.examen_fisico || {};
+  const vitalesTxt = ["TA", "FC", "FR", "SpO2", "T", "peso", "talla"]
+    .map(function (k) { return v[k] ? (k + ": " + v[k]) : null; }).filter(Boolean).join(" | ");
+  addSection("Examen físico", vitalesTxt);
+  addTagSection("Antecedentes personales", s.antecedentes_personales);
+  addTagSection("Antecedentes quirúrgicos", s.antecedentes_quirurgicos);
+  addTagSection("Alergias", s.alergias);
+  if (s.medicacion_habitual && s.medicacion_habitual.length) {
+    lines.push("Medicación habitual: " + s.medicacion_habitual.map(function (m) {
+      return m.principio_activo_probable + " " + (m.dosis || "");
+    }).join(", "));
+    lines.push("");
+  }
+  addTagSection("Hábitos", s.habitos);
+  addTagSection("Antecedentes familiares", s.antecedentes_familiares);
+  const estudiosTxt = s.estudios_complementarios_editado || (s.estudios_complementarios || []).map(function (x) { return x.texto; }).join(" ");
+  addSection("Estudios complementarios", estudiosTxt);
+  if (s.impresion_diagnostica && s.impresion_diagnostica.length) {
+    lines.push("Impresión diagnóstica: " + s.impresion_diagnostica.map(function (d) { return d.texto; }).join("; "));
+    lines.push("");
+  }
+  if (s.plan && s.plan.length) {
+    lines.push("Plan: " + s.plan.map(function (pl) { return pl.texto; }).join("; "));
+    lines.push("");
+  }
+  return lines.join("\n").trim();
+}
+window.__copyEncounterText = function () {
+  const e = DB.encounters[route.encounterId];
+  const p = DB.patients[route.patientId];
+  if (!e || !p) return;
+  const text = buildPlainTextNote(p, e);
+  function fallbackCopy() {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      showToast("Copiado al portapapeles");
+    } catch (err) {
+      showToast("No se pudo copiar");
+    }
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function () {
+      showToast("Copiado al portapapeles");
+    }).catch(fallbackCopy);
+  } else {
+    fallbackCopy();
+  }
+};
+
 /* ---------- VER CONSULTA GUARDADA (solo lectura simple) ---------- */
 function renderEncounterView() {
   const e = DB.encounters[route.encounterId];
@@ -1497,6 +1654,7 @@ function renderEncounterView() {
   const creada = new Date(e.createdAt).toLocaleString("es-AR");
   const aprobada = e.approvedAt ? new Date(e.approvedAt).toLocaleString("es-AR") : null;
   html += '<p class="small-note" style="margin:0 0 16px;text-align:left;">Creada: ' + esc(creada) + (aprobada ? ' · Aprobada: ' + esc(aprobada) : '') + '</p>';
+  html += '<button class="btn btn-secondary" style="margin-bottom:14px;" onclick="__copyEncounterText()">📋 Copiar como texto</button>';
   html += '<div class="hc-field"><div class="field-label">Motivo de consulta</div>' + (s.motivo_consulta && s.motivo_consulta.texto ? esc(s.motivo_consulta.texto) : '<div class="not-registered">No registrado</div>') + '</div>';
   const ea = (s.enfermedad_actual && s.enfermedad_actual.editado) ||
     [s.motivo_consulta && s.motivo_consulta.texto, ...((s.enfermedad_actual && s.enfermedad_actual.fragmentos) || [])].filter(Boolean).join(" ");
