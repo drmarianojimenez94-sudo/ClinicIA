@@ -516,7 +516,7 @@ function showMicPermissionSheet(onRetry) {
     '<p>Probá en este orden:</p>' +
     '<p style="margin-top:-8px;">1. En el iPhone: <strong>Ajustes → General → Teclado → Activar dictado</strong> (Safari necesita el dictado del sistema activado para transcribir). También revisá Ajustes → Safari → Micrófono → Permitir.<br><br>' +
     '2. Tocá el ícono "aA" en la barra de direcciones de Safari → Configuración del sitio web → Micrófono → Permitir.<br><br>' +
-    '3. Si estás viendo esto dentro del chat de Claude, abrí el enlace de esta app directamente en Safari (compartir → abrir en el navegador).</p>' +
+    '3. Si estás viendo esto dentro de otra app (por ejemplo un chat o un navegador embebido), abrí el enlace de esta app directamente en Safari (compartir → abrir en el navegador).</p>' +
     '<div class="btn-block-row">' +
     '<button class="btn btn-secondary" id="micSheetManual">Escribir manualmente</button>' +
     '<button class="btn btn-primary" id="micSheetRetry">Reintentar</button>' +
@@ -1023,7 +1023,7 @@ function showConsentSheet(patientId) {
   overlay.innerHTML =
     '<div class="consent-sheet">' +
     '<h2>Consentimiento para grabar</h2>' +
-    '<p>Antes de comenzar, informá al paciente que la consulta va a transcribirse en el teléfono para armar la historia clínica, y que él/ella puede pedir que se detenga en cualquier momento. Nada de esto se envía a servidores externos: la transcripción ocurre en el propio dispositivo.</p>' +
+    '<p>Antes de comenzar, informá al paciente que la consulta va a transcribirse en el teléfono para armar la historia clínica, y que él/ella puede pedir que se detenga en cualquier momento. La transcripción se genera en el propio dispositivo; para organizarla en la historia clínica, el texto se envía de forma segura a un servicio de inteligencia artificial (no se comparte con terceros ni se usa para otro fin), y el médico revisa y corrige todo antes de guardarlo.</p>' +
     '<div class="btn-block-row">' +
     '<button class="btn btn-secondary" id="consentNo">Sin grabación</button>' +
     '<button class="btn btn-primary" id="consentYes">Paciente aceptó</button>' +
@@ -1275,6 +1275,15 @@ function finishConsultGoToReview(e) {
 }
 
 /* ---------- REVISIÓN DE CONSULTA ---------- */
+function structuredByBanner(structuredBy) {
+  if (structuredBy === "local_respaldo") {
+    return '<div class="alert-box"><div class="title">Motor local de respaldo</div>No se pudo usar la IA real para organizar esta consulta; se usó un motor de reglas más simple. Revisá cada campo con más atención de lo habitual.</div>';
+  }
+  if (structuredBy === "ia") {
+    return '<p class="small-note" style="margin:0 0 16px;text-align:left;">✓ Organizado con IA. Igual, revisá todo antes de aprobar.</p>';
+  }
+  return "";
+}
 function renderConsultReview() {
   const e = DB.encounters[route.encounterId];
   const p = DB.patients[route.patientId];
@@ -1285,6 +1294,7 @@ function renderConsultReview() {
   let html = topbar("Revisión de consulta");
   html += '<main>';
   html += '<p class="small-note" style="margin:0 0 16px;">Revisá y corregí cada campo. Nada queda guardado como definitivo hasta que apruebes.</p>';
+  html += structuredByBanner(e.structuredBy);
 
   // Alertas
   if (s.alertas && s.alertas.length) {
@@ -1483,6 +1493,10 @@ function renderEncounterView() {
   const f = fmtDate(e.createdAt);
   let html = topbar(f.full);
   html += '<main>';
+  html += structuredByBanner(e.structuredBy);
+  const creada = new Date(e.createdAt).toLocaleString("es-AR");
+  const aprobada = e.approvedAt ? new Date(e.approvedAt).toLocaleString("es-AR") : null;
+  html += '<p class="small-note" style="margin:0 0 16px;text-align:left;">Creada: ' + esc(creada) + (aprobada ? ' · Aprobada: ' + esc(aprobada) : '') + '</p>';
   html += '<div class="hc-field"><div class="field-label">Motivo de consulta</div>' + (s.motivo_consulta && s.motivo_consulta.texto ? esc(s.motivo_consulta.texto) : '<div class="not-registered">No registrado</div>') + '</div>';
   const ea = (s.enfermedad_actual && s.enfermedad_actual.editado) ||
     [s.motivo_consulta && s.motivo_consulta.texto, ...((s.enfermedad_actual && s.enfermedad_actual.fragmentos) || [])].filter(Boolean).join(" ");
