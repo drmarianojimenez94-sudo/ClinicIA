@@ -360,6 +360,46 @@ function saveStore() {
 }
 let DB = loadStore();
 
+/* ---------- DIAGNÓSTICO: PROBAR CONEXIÓN CON LA IA ----------
+   Pensado para que un médico sin conocimientos técnicos pueda saber
+   POR QUÉ la IA no anda, sin abrir las herramientas de desarrollador:
+   llama a la misma función que se usa al finalizar una consulta, con
+   un texto de prueba sin datos clínicos, y muestra el motivo exacto
+   si falla (incluyendo el caso típico de abrir la app desde una URL
+   que no es la de Netlify, donde esta función ni siquiera existe). */
+window.__testAIConnection = function () {
+  const overlay = document.createElement("div");
+  overlay.className = "consent-overlay";
+  overlay.innerHTML = '<div class="consent-sheet"><h2>Probando conexión con la IA…</h2><p>Esto puede tardar unos segundos.</p></div>';
+  document.body.appendChild(overlay);
+  const sheet = overlay.querySelector(".consent-sheet");
+  function closeBtn() {
+    return '<button class="btn btn-secondary" style="margin-top:14px;" id="aiTestClose">Cerrar</button>';
+  }
+  callStructureAPI("Prueba de conexión, sin datos clínicos reales.", {})
+    .then(function () {
+      sheet.innerHTML = '<h2>✅ La IA está conectada</h2>' +
+        '<p>La función respondió correctamente. Tus próximas consultas se van a organizar con la IA real.</p>' + closeBtn();
+      document.getElementById("aiTestClose").onclick = function () { document.body.removeChild(overlay); };
+    })
+    .catch(function (err) {
+      const msg = err && err.message ? err.message : "Error desconocido";
+      let hint;
+      if (/^HTTP 404/.test(msg)) {
+        hint = "Esto suele pasar cuando la app se abre desde una dirección que no es la que te dio Netlify (por ejemplo, GitHub Pages no puede ejecutar esta función, solo sirve archivos). Abrí la app desde el link tipo *.netlify.app.";
+      } else if (/ANTHROPIC_API_KEY/i.test(msg)) {
+        hint = "Falta cargar la clave de la API de Claude en Netlify (Site configuration → Environment variables), o falta volver a desplegar el sitio después de cargarla.";
+      } else if (/Failed to fetch|NetworkError|Load failed/i.test(msg)) {
+        hint = "No se pudo hacer la conexión de red. Revisá que haya internet y que estés en el link de Netlify (no una copia guardada del archivo en el teléfono).";
+      } else {
+        hint = "Revisá que la clave cargada en Netlify sea correcta y que el sitio se haya vuelto a desplegar después de cargarla.";
+      }
+      sheet.innerHTML = '<h2>❌ No se pudo conectar con la IA</h2>' +
+        '<p><strong>Detalle:</strong> ' + esc(msg) + '</p><p>' + hint + '</p>' + closeBtn();
+      document.getElementById("aiTestClose").onclick = function () { document.body.removeChild(overlay); };
+    });
+};
+
 window.__exportBackup = function () {
   try {
     const data = JSON.stringify(DB, null, 2);
@@ -745,6 +785,7 @@ function renderHome() {
   html += '<div id="patientList"></div>';
   html += '<button class="btn btn-ghost" style="margin-top:18px;" onclick="__exportBackup()">⬇️ Exportar todo (respaldo)</button>';
   html += '<p class="small-note">Todo se guarda solo en este teléfono. Hacé un respaldo de tanto en tanto para no perder la historia clínica si cambiás de equipo.</p>';
+  html += '<button class="btn btn-ghost" style="margin-top:6px;" onclick="__testAIConnection()">🔧 Probar conexión con la IA</button>';
   html += '</main>';
   app.innerHTML = html;
   renderPatientList(patients, "");
@@ -1249,13 +1290,24 @@ function buildPatientContextForAI(patient) {
     medicacion_habitual: (patient.medicacion_habitual || []).map(function (x) { return x.texto || x; }),
   };
 }
+// Devuelve siempre un mensaje de error legible por un médico (no solo "HTTP
+// 500"): lee el cuerpo JSON de la función aunque la respuesta no sea 200,
+// porque ahí es donde queda el motivo real (falta la API key, la key es
+// inválida, error de la API de Claude, etc.). Así, si la IA no anda, se
+// puede saber por qué sin abrir las herramientas de desarrollador.
+function parseFunctionError(resp) {
+  return resp.json().catch(function () { return null; }).then(function (data) {
+    if (data && data.error) return data.error;
+    return "HTTP " + resp.status;
+  });
+}
 function callStructureAPI(transcriptText, patientContext) {
   return fetch("/.netlify/functions/structure-consulta", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ transcript: transcriptText, patientContext: patientContext }),
   }).then(function (resp) {
-    if (!resp.ok) throw new Error("HTTP " + resp.status);
+    if (!resp.ok) return parseFunctionError(resp).then(function (msg) { throw new Error(msg); });
     return resp.json();
   }).then(function (data) {
     if (data && data.error) throw new Error(data.error);
@@ -1286,6 +1338,7 @@ window.__finishConsult = function () {
       console.error("Fallo la IA, usando motor local de respaldo:", err);
       e.structured = clasificarTranscripcion(e.transcript.map(function (l) { return { speaker: null, text: l.text }; }));
       e.structuredBy = "local_respaldo";
+      e.structuredByError = err && err.message ? err.message : "Error desconocido";
       showToast("No se pudo conectar con la IA — se usó el motor local. Revisá con más atención.");
       finishConsultGoToReview(e);
     });
@@ -1318,7 +1371,9 @@ window.__retryAI = function () {
     })
     .catch(function (err) {
       console.error("Reintento de IA falló:", err);
+      e.structuredByError = err && err.message ? err.message : "Error desconocido";
       showToast("No se pudo conectar con la IA. Seguís con el resultado anterior.");
+      saveStore();
       renderConsultReview();
     });
 };
@@ -1349,9 +1404,10 @@ window.__rewriteField = function (key) {
 };
 
 /* ---------- REVISIÓN DE CONSULTA ---------- */
-function structuredByBanner(structuredBy) {
+function structuredByBanner(structuredBy, structuredByError) {
   if (structuredBy === "local_respaldo") {
-    return '<div class="alert-box"><div class="title">Motor local de respaldo</div>No se pudo usar la IA real para organizar esta consulta; se usó un motor de reglas más simple. Revisá cada campo con más atención de lo habitual.</div>';
+    return '<div class="alert-box"><div class="title">Motor local de respaldo</div>No se pudo usar la IA real para organizar esta consulta; se usó un motor de reglas más simple. Revisá cada campo con más atención de lo habitual.' +
+      (structuredByError ? '<div style="margin-top:6px;font-weight:600;">Motivo: ' + esc(structuredByError) + '</div>' : '') + '</div>';
   }
   if (structuredBy === "ia") {
     return '<p class="small-note" style="margin:0 0 16px;text-align:left;">✓ Organizado con IA. Igual, revisá todo antes de aprobar.</p>';
@@ -1368,7 +1424,7 @@ function renderConsultReview() {
   let html = topbar("Revisión de consulta");
   html += '<main>';
   html += '<p class="small-note" style="margin:0 0 16px;">Revisá y corregí cada campo. Nada queda guardado como definitivo hasta que apruebes.</p>';
-  html += structuredByBanner(e.structuredBy);
+  html += structuredByBanner(e.structuredBy, e.structuredByError);
   html += '<button class="btn btn-secondary" style="margin-bottom:14px;" onclick="__retryAI()">↻ Reintentar organizar con IA</button>';
 
   // Alertas
@@ -1650,7 +1706,7 @@ function renderEncounterView() {
   const f = fmtDate(e.createdAt);
   let html = topbar(f.full);
   html += '<main>';
-  html += structuredByBanner(e.structuredBy);
+  html += structuredByBanner(e.structuredBy, e.structuredByError);
   const creada = new Date(e.createdAt).toLocaleString("es-AR");
   const aprobada = e.approvedAt ? new Date(e.approvedAt).toLocaleString("es-AR") : null;
   html += '<p class="small-note" style="margin:0 0 16px;text-align:left;">Creada: ' + esc(creada) + (aprobada ? ' · Aprobada: ' + esc(aprobada) : '') + '</p>';
