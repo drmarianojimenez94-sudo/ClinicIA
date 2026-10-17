@@ -24,3 +24,25 @@ test('checkout stores server price, reuses request identity, isolates orders and
   env.CLINICIA_PAYMENTS_ENABLED='false';await assert.rejects(()=>api.checkout('u1',body),e=>e.status===503);
  }finally{await db.close();}
 });
+test('webhook requires a valid signature, re-reads the payment and credits exactly once',async()=>{
+ const {createHmac}=await import('node:crypto');
+ const db=new PGlite();await db.exec(schema+paymentSchema);await db.query("INSERT INTO clinic_users(id,username,username_key,password_hash,recovery_hash) VALUES('u1','User1','user1','hash','hash')");
+ const env={MERCADOPAGO_ACCESS_TOKEN:'fake-server-token',MERCADOPAGO_WEBHOOK_SECRET:'whsec-test',CLINICIA_PRICE_ARS:'1000',CLINICIA_PRODUCT_TITLE:'Pass',CLINICIA_PRODUCT_DESCRIPTION:'Scope',CLINICIA_SELLER_NAME:'Seller',CLINICIA_SUPPORT_EMAIL:'t@example.com',CLINICIA_PAYMENTS_ENABLED:'true'};
+ let orderId;const payment={id:55,status:'approved',collector_id:7,currency_id:'ARS',transaction_amount:1000,date_approved:'2026-10-17T00:00:00Z'};
+ const request=async(url,args)=>{if(url.endsWith('/checkout/preferences')){orderId=JSON.parse(args.body).external_reference;return {ok:true,json:async()=>({id:'p1',collector_id:7,init_point:'https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=p1'})};}return {ok:true,json:async()=>({...payment,external_reference:orderId})};};
+ const api=createPayments({db,origin:'https://clinic.example',env,request});
+ const sign=(dataId,requestId,ts='1760659200000',secret='whsec-test')=>`ts=${ts},v1=${createHmac('sha256',secret).update(`id:${dataId};request-id:${requestId};ts:${ts};`).digest('hex')}`;
+ try{
+  await api.checkout('u1',{requestKey:'12345678-1234-1234-1234-123456789012',accepted:true});
+  await assert.rejects(()=>api.webhook({signature:sign('55','r1',undefined,'wrong'),requestId:'r1',dataId:'55',type:'payment'}),e=>e.status===401);
+  await assert.rejects(()=>api.webhook({signature:undefined,requestId:'r1',dataId:'55',type:'payment'}),e=>e.status===401);
+  const ok={signature:sign('55','r1'),requestId:'r1',dataId:'55',type:'payment'};
+  const first=await api.webhook(ok);assert.equal(first.order.status,'approved');const until=first.order.validUntil;
+  const second=await api.webhook(ok);assert.equal(second.order.validUntil.toString(),until.toString());
+  assert.equal((await db.query("SELECT count(*)::int AS n FROM clinic_orders WHERE payment_id='55'")).rows[0].n,1);
+  assert.equal((await api.webhook({...ok,type:'merchant_order'})).handled,false);
+  payment.status='refunded';assert.equal((await api.webhook(ok)).order.validUntil,null);
+  payment.transaction_amount=1;await assert.rejects(()=>api.webhook(ok),e=>e.status===409);
+  assert.deepEqual(await api.reconcilePending(),{checked:0,changed:0,errors:0});
+ }finally{await db.close();}
+});

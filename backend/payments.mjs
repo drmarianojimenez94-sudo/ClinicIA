@@ -1,4 +1,4 @@
-import {randomUUID} from 'node:crypto';
+import {randomUUID,createHmac,timingSafeEqual} from 'node:crypto';
 export const paymentSchema=`CREATE TABLE IF NOT EXISTS clinic_orders(id text PRIMARY KEY,user_id text NOT NULL REFERENCES clinic_users(id) ON DELETE CASCADE,request_key text NOT NULL,title text NOT NULL,amount_cents integer NOT NULL,currency text NOT NULL DEFAULT 'ARS',status text NOT NULL DEFAULT 'creating',preference_id text,checkout_url text,collector_id text,payment_id text UNIQUE,valid_until timestamptz,created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),UNIQUE(user_id,request_key));`;
 const fail=(status,message)=>{throw Object.assign(new Error(message),{status});};
 export function paymentConfig(env=process.env){
@@ -22,15 +22,32 @@ export function createPayments({db,origin,env=process.env,request=fetch}){
    const r=await db.query("UPDATE clinic_orders SET preference_id=$1,checkout_url=$2,collector_id=$3,status='pending',updated_at=now() WHERE id=$4 RETURNING *",[String(preference.id),url.href,String(preference.collector_id),id]);return safe(r.rows[0]);
   }catch(e){await db.query("UPDATE clinic_orders SET status='error',updated_at=now() WHERE id=$1",[id]);throw e;}
  }
- async function verify(userId,id){const order=(await db.query('SELECT * FROM clinic_orders WHERE id=$1 AND user_id=$2',[id,userId])).rows[0];if(!order)fail(404,'Orden no encontrada.');if(!order.preference_id)return safe(order);
-  let payment;if(order.payment_id){payment=await mp('/v1/payments/'+encodeURIComponent(order.payment_id));}else{const found=await mp('/v1/payments/search?external_reference='+encodeURIComponent(id)+'&sort=date_created&criteria=desc&limit=50');const candidates=Array.isArray(found.results)?found.results:[];const match=candidates.find(p=>p.status==='approved')||candidates[0];if(!match)return safe(order);if(!/^\d+$/.test(String(match.id)))fail(502,'Respuesta de pago inválida.');payment=await mp('/v1/payments/'+match.id);}
-  if(payment.external_reference!==id||String(payment.collector_id)!==order.collector_id||payment.currency_id!==order.currency||Math.round(Number(payment.transaction_amount)*100)!==order.amount_cents)fail(409,'El pago no coincide con esta orden. Contactá al soporte sin repetir el pago.');
+ async function applyPayment(order,payment){
+  if(payment.external_reference!==order.id||String(payment.collector_id)!==order.collector_id||payment.currency_id!==order.currency||Math.round(Number(payment.transaction_amount)*100)!==order.amount_cents)fail(409,'El pago no coincide con esta orden. Contactá al soporte sin repetir el pago.');
   const status=['approved','pending','in_process','rejected','cancelled','refunded','charged_back','authorized'].includes(payment.status)?payment.status:'review';
   const approvedAt=Date.parse(payment.date_approved);if(status==='approved'&&!Number.isFinite(approvedAt))fail(502,'El proveedor no informó la fecha de aprobación.');
   const until=status==='approved'?new Date(approvedAt+30*86400000).toISOString():null;
   // Only a verified approval is bound permanently. A failed attempt must not hide a later approved retry.
   const paymentId=['approved','refunded','charged_back'].includes(status)?String(payment.id):null;
-  const r=await db.query('UPDATE clinic_orders SET status=$1,payment_id=$2,valid_until=$3,updated_at=now() WHERE id=$4 RETURNING *',[status,paymentId,until,id]);return safe(r.rows[0]);
+  const r=await db.query('UPDATE clinic_orders SET status=$1,payment_id=$2,valid_until=$3,updated_at=now() WHERE id=$4 RETURNING *',[status,paymentId,until,order.id]);return safe(r.rows[0]);
  }
- return {offer:()=>publicPaymentOffer(config()),orders,checkout,verify};
+ async function verify(userId,id){const order=(await db.query('SELECT * FROM clinic_orders WHERE id=$1 AND user_id=$2',[id,userId])).rows[0];if(!order)fail(404,'Orden no encontrada.');if(!order.preference_id)return safe(order);
+  let payment;if(order.payment_id){payment=await mp('/v1/payments/'+encodeURIComponent(order.payment_id));}else{const found=await mp('/v1/payments/search?external_reference='+encodeURIComponent(id)+'&sort=date_created&criteria=desc&limit=50');const candidates=Array.isArray(found.results)?found.results:[];const match=candidates.find(p=>p.status==='approved')||candidates[0];if(!match)return safe(order);if(!/^\d+$/.test(String(match.id)))fail(502,'Respuesta de pago inválida.');payment=await mp('/v1/payments/'+match.id);}
+  return applyPayment(order,payment);
+ }
+
+ // Webhook: the signature authenticates the notification, but the payment is always re-read from Mercado Pago before any state changes.
+ function signatureValid({signature,requestId,dataId}){const secret=env.MERCADOPAGO_WEBHOOK_SECRET;if(!secret||typeof signature!=='string'||!dataId)return false;
+  const parts=Object.fromEntries(signature.split(',').map(x=>x.trim().split('=')).filter(x=>x.length===2));if(!/^\d{10,13}$/.test(parts.ts||'')||!/^[a-f0-9]{64}$/.test(parts.v1||''))return false;
+  const expected=createHmac('sha256',secret).update(`id:${String(dataId).toLowerCase()};request-id:${requestId||''};ts:${parts.ts};`).digest();return timingSafeEqual(expected,Buffer.from(parts.v1,'hex'));}
+ async function reconcilePayment(paymentId){if(!/^\d{1,20}$/.test(String(paymentId)))fail(400,'Pago inválido.');const payment=await mp('/v1/payments/'+paymentId);
+  const order=(await db.query('SELECT * FROM clinic_orders WHERE id=$1',[String(payment.external_reference||'')])).rows[0];if(!order)return {handled:false,reason:'unknown_order'};return {handled:true,order:await applyPayment(order,payment)};}
+ async function webhook({signature,requestId,dataId,type}){
+  if(!signatureValid({signature,requestId,dataId}))fail(401,'Firma inválida.');
+  if(type&&type!=='payment')return {handled:false,reason:'ignored_type'};
+  return reconcilePayment(dataId);
+ }
+ async function reconcilePending(){const rows=(await db.query("SELECT id,user_id FROM clinic_orders WHERE preference_id IS NOT NULL AND (status IN ('pending','in_process','authorized') OR (status='approved' AND valid_until>now())) AND updated_at<now()-interval '5 minutes' ORDER BY updated_at LIMIT 100")).rows;
+  const summary={checked:0,changed:0,errors:0};for(const r of rows){summary.checked++;try{const before=(await db.query('SELECT status FROM clinic_orders WHERE id=$1',[r.id])).rows[0].status;const after=await verify(r.user_id,r.id);if(after.status!==before)summary.changed++;}catch{summary.errors++;}}return summary;}
+ return {offer:()=>publicPaymentOffer(config()),orders,checkout,verify,webhook,reconcilePending};
 }

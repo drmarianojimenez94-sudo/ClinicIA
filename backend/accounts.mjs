@@ -50,10 +50,15 @@ export async function createAccounts({db,origin='http://localhost:3000',secure=t
  async function event(u,name){if(allowedEvents.has(name))await db.query('INSERT INTO clinic_events(user_id,name) VALUES($1,$2)',[u.id,name]);}
  async function handler(req,res,url){
   const path=url.pathname;
-  if(!path.startsWith('/api/account')&&!path.startsWith('/api/admin')&&path!=='/api/events'&&path!=='/api/offer')return false;
+  if(!path.startsWith('/api/account')&&!path.startsWith('/api/admin')&&path!=='/api/events'&&path!=='/api/offer'&&path!=='/api/payments/webhook')return false;
   res.setHeader('Cache-Control','no-store');
   const send=(status,data)=>{res.writeHead(status,{'Content-Type':'application/json'});res.end(JSON.stringify(data));return true;};
   try{
+   if(path==='/api/payments/webhook'){
+    if(req.method!=='POST')fail(405,'Método no permitido.');
+    req.resume();const result=await payments.webhook({signature:req.headers['x-signature'],requestId:req.headers['x-request-id'],dataId:url.searchParams.get('data.id'),type:url.searchParams.get('type')||url.searchParams.get('topic')});
+    return send(200,{received:true,handled:result.handled});
+   }
    if(!['GET','POST','PUT','DELETE'].includes(req.method))fail(405,'Método no permitido.');
    if(req.method!=='GET'&&req.headers.origin!==origin)fail(403,'Origen no autorizado.');
    let body={};if(req.method!=='GET'){if(!String(req.headers['content-type']||'').startsWith('application/json'))fail(415,'Se requiere JSON.');let text='';for await(const chunk of req){text+=chunk;if(Buffer.byteLength(text)>500000)fail(413,'Datos demasiado grandes.');}try{body=JSON.parse(text||'{}');}catch{fail(400,'JSON inválido.');}if(!body||typeof body!=='object'||Array.isArray(body))fail(400,'Datos inválidos.');}
@@ -107,6 +112,7 @@ export async function createAccounts({db,origin='http://localhost:3000',secure=t
    if(path==='/api/account/delete'&&req.method==='POST'){await limit('delete:'+u.id,5,900);if(u.role==='admin')fail(403,'La cuenta administradora no se elimina desde aquí.');if(typeof body.password!=='string'||!await verifyPassword(body.password,u.password_hash))fail(401,'Contraseña incorrecta.');await db.query("DELETE FROM clinic_rooms WHERE data->'members' @> $1::jsonb",[JSON.stringify([{id:u.id}])]);await db.query('DELETE FROM clinic_users WHERE id=$1',[u.id]);res.setHeader('Set-Cookie',`clinic_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0${secure?'; Secure':''}`);return send(200,{ok:true});}
    if(path.startsWith('/api/admin')){
     if(u.role!=='admin')fail(403,'Acceso exclusivo para administración.');
+    if(path==='/api/admin/payments/reconcile'&&req.method==='POST'){await limit('reconcile:'+u.id,6,60);return send(200,await payments.reconcilePending());}
     if(path==='/api/admin/training'&&req.method==='GET')return send(200,await training.roster());
     if(path==='/api/admin/telemetry'&&req.method==='GET'){
      const counts=(await db.query(`SELECT count(*) AS accounts,count(*) FILTER(WHERE last_seen>now()-interval '7 days') AS active7,count(*) FILTER(WHERE created_at>now()-interval '1 day') AS new24 FROM clinic_users WHERE role='student'`)).rows[0];

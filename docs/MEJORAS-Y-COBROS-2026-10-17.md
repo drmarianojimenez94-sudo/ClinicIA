@@ -34,3 +34,9 @@ Limitaciones explícitas: la conciliación es iniciada por el usuario desde «Ve
 - Mercado Pago, consulta por external_reference: https://www.mercadopago.com.ar/developers/es/docs/shopify/how-tos/change-endpoint-to-get-payment-details
 
 Comprobación en la página publicada: menú simplificado, tres casos visibles, decisión incorrecta con devolución y pregunta contextual al tutor. La IA respondió correctamente distinguiendo sensibilidad de VPP. Se añadió formato seguro para negritas y fracciones simples tras observar que el proveedor enviaba marcado sin renderizar. /api/offer confirmó piloto abierto y pagos desactivados; /api/account/me confirmó cuentas configuradas.
+
+## Webhook y conciliación de Mercado Pago (P0-3, parcial)
+- `POST /api/payments/webhook`: autenticado con la firma `x-signature` (HMAC-SHA256 del manifiesto `id:<data.id>;request-id:<x-request-id>;ts:<ts>;`) usando `MERCADOPAGO_WEBHOOK_SECRET`. Sin secreto configurado, toda notificación se rechaza (401). La notificación nunca se toma como prueba de pago: el pago se vuelve a consultar a la API y pasa las mismas verificaciones de referencia, vendedor, moneda e importe que la verificación manual.
+- Idempotencia: `payment_id` es único y repetir la notificación no extiende la vigencia. Un reintegro o contracargo retira la vigencia.
+- `POST /api/admin/payments/reconcile` (solo rol admin): reconsulta órdenes pendientes o vigentes con más de 5 minutos sin actualizar.
+- Pendiente (requiere autorización del titular): crear la aplicación en Mercado Pago, cargar `MERCADOPAGO_WEBHOOK_SECRET`, registrar la URL `https://<dominio>/api/payments/webhook` con el evento «Pagos», probar con credenciales sandbox y recién entonces `CLINICIA_PAYMENTS_ENABLED=true`. No se ejecutaron pagos reales ni sandbox. El webhook corre en el servidor Node (Render); la función de Netlify no lo expone.
